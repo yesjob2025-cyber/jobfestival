@@ -117,6 +117,9 @@ supabase/schema.sql       # 운영용 PostgreSQL 스키마
 
 ## 운영 배포
 
+> 📘 **클릭 단위 상세 가이드: [docs/DEPLOY.md](docs/DEPLOY.md)**
+> (Vercel 배포 → 환경변수 → Supabase 연결 → 도메인 설정 → 행사 전 체크리스트)
+
 ### 1) Supabase (데이터 영속화 — 운영 필수)
 
 서버리스 환경은 파일시스템이 휘발성이라 JSON 스토어로는 데이터가 유지되지 않습니다.
