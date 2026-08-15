@@ -1,0 +1,31 @@
+{
+  "name": "jobfestival",
+  "version": "1.0.0",
+  "private": true,
+  "description": "2026 김해 JOB FESTIVAL 공식 홈페이지 및 현장 운영 플랫폼 (jobfestival.co.kr)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "reset-db": "node scripts/reset-db.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.7",
+    "jose": "^5.9.6",
+    "next": "15.5.20",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  }
+}

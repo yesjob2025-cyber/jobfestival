@@ -1,0 +1,134 @@
+import "server-only";
+import type { FestivalDatabase } from "./types";
+import { hasSupabase, supabase } from "./supabase";
+import { db, persist } from "./store";
+
+// ─────────────────────────────────────────────────────────────
+// 데이터 접근 추상화
+//  - SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY 있으면 → Supabase(영구)
+//  - 없으면 → 로컬 JSON 스토어(데모)
+//  repo.ts 는 이 저수준 API 만 사용 → 백엔드 교체 지점이 여기 하나로 모임
+// ─────────────────────────────────────────────────────────────
+
+export type Collection = keyof FestivalDatabase;
+
+// 컬렉션명 → Supabase 테이블명
+const TABLE: Record<Collection, string> = {
+  festCompanies: "fest_companies",
+  festJobs: "fest_jobs",
+  festPromos: "fest_promos",
+  festEvents: "fest_events",
+  festVisitors: "fest_visitors",
+  festCheckins: "fest_checkins",
+  festApplications: "fest_applications",
+  festInterviewSlots: "fest_interview_slots",
+  festInterviews: "fest_interviews",
+  festStamps: "fest_stamps",
+  festSurveys: "fest_surveys",
+};
+
+export const usingSupabase = hasSupabase;
+
+function localRows(c: Collection): Record<string, unknown>[] {
+  const d = db() as unknown as Record<string, unknown[]>;
+  if (!Array.isArray(d[c])) d[c] = [];
+  return d[c] as Record<string, unknown>[];
+}
+
+export async function all<T = Record<string, unknown>>(c: Collection): Promise<T[]> {
+  if (hasSupabase) {
+    const { data, error } = await supabase().from(TABLE[c]).select("*").limit(5000);
+    if (error) throw new Error(`[data.all ${c}] ${error.message}`);
+    return (data ?? []) as T[];
+  }
+  return localRows(c).map((x) => ({ ...x })) as unknown as T[];
+}
+
+export async function one<T = Record<string, unknown>>(
+  c: Collection,
+  idField: string,
+  idValue: string
+): Promise<T | undefined> {
+  if (hasSupabase) {
+    const { data, error } = await supabase()
+      .from(TABLE[c])
+      .select("*")
+      .eq(idField, idValue)
+      .maybeSingle();
+    if (error) throw new Error(`[data.one ${c}] ${error.message}`);
+    return (data ?? undefined) as T | undefined;
+  }
+  return localRows(c).find((r) => r[idField] === idValue) as T | undefined;
+}
+
+export async function insert(c: Collection, row: Record<string, unknown>): Promise<void> {
+  if (hasSupabase) {
+    const { error } = await supabase().from(TABLE[c]).insert(row);
+    if (error) throw new Error(`[data.insert ${c}] ${error.message}`);
+    return;
+  }
+  localRows(c).push(row);
+  persist();
+}
+
+export async function insertMany(c: Collection, rows: Record<string, unknown>[]): Promise<void> {
+  if (!rows.length) return;
+  if (hasSupabase) {
+    for (let i = 0; i < rows.length; i += 500) {
+      const { error } = await supabase().from(TABLE[c]).insert(rows.slice(i, i + 500));
+      if (error) throw new Error(`[data.insertMany ${c}] ${error.message}`);
+    }
+    return;
+  }
+  localRows(c).push(...rows);
+  persist();
+}
+
+export async function patch(
+  c: Collection,
+  idField: string,
+  idValue: string,
+  changes: Record<string, unknown>
+): Promise<void> {
+  if (hasSupabase) {
+    const { error } = await supabase().from(TABLE[c]).update(changes).eq(idField, idValue);
+    if (error) throw new Error(`[data.patch ${c}] ${error.message}`);
+    return;
+  }
+  const row = localRows(c).find((r) => r[idField] === idValue);
+  if (row) Object.assign(row, changes);
+  persist();
+}
+
+export async function remove(c: Collection, idField: string, idValue: string): Promise<void> {
+  if (hasSupabase) {
+    const { error } = await supabase().from(TABLE[c]).delete().eq(idField, idValue);
+    if (error) throw new Error(`[data.remove ${c}] ${error.message}`);
+    return;
+  }
+  const rows = localRows(c);
+  const idx = rows.findIndex((r) => r[idField] === idValue);
+  if (idx >= 0) rows.splice(idx, 1);
+  persist();
+}
+
+export async function clear(c: Collection): Promise<void> {
+  if (hasSupabase) {
+    const { error } = await supabase().from(TABLE[c]).delete().neq("id", "__never_matches__");
+    if (error) throw new Error(`[data.clear ${c}] ${error.message}`);
+    return;
+  }
+  localRows(c).length = 0;
+  persist();
+}
+
+export async function count(c: Collection): Promise<number> {
+  if (hasSupabase) {
+    const { count: n, error } = await supabase()
+      .from(TABLE[c])
+      .select("*", { count: "exact", head: true });
+    if (error) throw new Error(`[data.count ${c}] ${error.message}`);
+    return n ?? 0;
+  }
+  return localRows(c).length;
+}
