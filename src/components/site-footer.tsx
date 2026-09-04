@@ -1,84 +1,52 @@
 import Link from "next/link";
-import { FEST, ZONES } from "@/lib/config";
+import { EXPO } from "@/lib/expo";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-20 border-t border-fest-line bg-fest-navy text-white/80">
-      <div className="fest-container grid gap-10 py-12 md:grid-cols-[1.4fr_1fr_1fr]">
+    <footer className="mt-20 border-t border-ink-line bg-navy-deep text-white/75">
+      <div className="wrap grid gap-8 py-12 md:grid-cols-[1.4fr_1fr]">
         <div>
-          <p className="text-lg font-extrabold text-white">{FEST.title}</p>
-          <p className="mt-2 text-sm">{FEST.tagline}</p>
-          <dl className="mt-5 space-y-1.5 text-sm">
+          <p className="text-lg font-extrabold text-white">{EXPO.title}</p>
+          <dl className="mt-4 space-y-1.5 text-sm">
             <div className="flex gap-3">
-              <dt className="w-12 shrink-0 font-bold text-white/60">일시</dt>
+              <dt className="w-12 shrink-0 font-bold text-white/50">일시</dt>
               <dd>
-                {FEST.dateLabel} {FEST.timeLabel}
+                {EXPO.dateLabel} {EXPO.timeLabel}
               </dd>
             </div>
             <div className="flex gap-3">
-              <dt className="w-12 shrink-0 font-bold text-white/60">장소</dt>
-              <dd>{FEST.venueDetail}</dd>
+              <dt className="w-12 shrink-0 font-bold text-white/50">장소</dt>
+              <dd>{EXPO.venue}</dd>
             </div>
             <div className="flex gap-3">
-              <dt className="w-12 shrink-0 font-bold text-white/60">문의</dt>
-              <dd>
-                {FEST.contact.phone} · {FEST.contact.email}
-              </dd>
+              <dt className="w-12 shrink-0 font-bold text-white/50">주최</dt>
+              <dd>{EXPO.host}</dd>
             </div>
           </dl>
         </div>
 
         <div>
-          <p className="text-sm font-extrabold text-white">행사 구성</p>
+          <p className="text-sm font-extrabold text-white">바로가기</p>
           <ul className="mt-3 space-y-2 text-sm">
-            {ZONES.map((z) => (
-              <li key={z.key}>
-                <Link href={z.href} className="hover:text-white">
-                  {z.name}
-                </Link>
-              </li>
-            ))}
             <li>
-              <Link href="/guide" className="hover:text-white">
-                참여방법 안내
+              <Link href="/companies" className="hover:text-white">
+                참여기업 목록
+              </Link>
+            </li>
+            <li>
+              <Link href="/program" className="hover:text-white">
+                행사 프로그램
               </Link>
             </li>
           </ul>
-        </div>
-
-        <div>
-          <p className="text-sm font-extrabold text-white">참가자 메뉴</p>
-          <ul className="mt-3 space-y-2 text-sm">
-            <li>
-              <Link href="/register" className="hover:text-white">
-                사전등록 / QR 발급
-              </Link>
-            </li>
-            <li>
-              <Link href="/pass" className="hover:text-white">
-                내 입장권 · 스탬프
-              </Link>
-            </li>
-            <li>
-              <Link href="/pass/find" className="hover:text-white">
-                입장권 찾기
-              </Link>
-            </li>
-            <li>
-              <Link href="/staff" className="hover:text-white">
-                부스 운영자 체크인
-              </Link>
-            </li>
-          </ul>
+          <p className="mt-6 text-xs font-bold text-white/50">후원 / 협찬</p>
+          <p className="mt-1.5 text-xs leading-relaxed">{EXPO.sponsors.join(" · ")}</p>
         </div>
       </div>
 
       <div className="border-t border-white/10">
-        <div className="fest-container flex flex-col gap-2 py-5 text-xs text-white/50 sm:flex-row sm:items-center sm:justify-between">
-          <p>
-            주최 {FEST.host.join(" · ")} &nbsp;|&nbsp; 주관 {FEST.organizers.join(" · ")}
-          </p>
-          <p>© 2026 {FEST.title}. All rights reserved.</p>
+        <div className="wrap py-5 text-xs text-white/45">
+          © {EXPO.title} · {EXPO.platform}
         </div>
       </div>
     </footer>

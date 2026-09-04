@@ -2,29 +2,25 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { getPassSession } from "@/lib/session";
-import { FEST } from "@/lib/config";
+import { EXPO } from "@/lib/expo";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(FEST.siteUrl),
+  metadataBase: new URL(EXPO.siteUrl),
   title: {
-    default: `${FEST.title} | ${FEST.dateLabel}`,
-    template: `%s | ${FEST.title}`,
+    default: `${EXPO.title} | ${EXPO.dateLabel}`,
+    template: `%s | ${EXPO.titleShort}`,
   },
-  description: `${FEST.tagline} — ${FEST.dateLabel} ${FEST.timeLabel}, 기업관·직무관·홍보관·부대행사. ${FEST.hostLine}`,
+  description: `${EXPO.dateLabel} ${EXPO.timeLabel} · ${EXPO.venue}. ${EXPO.boothSummary}, 채용설명회, 현직자 동문선배 멘토링, 부대 이벤트.`,
   openGraph: {
-    title: FEST.title,
-    description: `${FEST.dateLabel} ${FEST.timeLabel} · 기업관 / 직무관 / 홍보관 / 부대행사`,
-    siteName: FEST.title,
+    title: EXPO.title,
+    description: `${EXPO.dateLabel} ${EXPO.timeLabel} · ${EXPO.venue}`,
+    siteName: EXPO.titleShort,
     locale: "ko_KR",
     type: "website",
   },
 };
 
-export default async function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
-  const pass = await getPassSession();
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
       <head>
@@ -35,8 +31,8 @@ export default async function RootLayout({
         />
       </head>
       <body>
-        <div className="fest-shell flex min-h-screen flex-col">
-          <SiteHeader hasPass={Boolean(pass?.vid)} />
+        <div className="flex min-h-screen flex-col bg-white">
+          <SiteHeader />
           <main className="flex-1">{children}</main>
           <SiteFooter />
         </div>

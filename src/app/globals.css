@@ -13,65 +13,57 @@ body {
 }
 
 body {
-  @apply bg-fest-bg text-fest-ink antialiased;
+  @apply bg-white text-ink antialiased;
 }
 
 @layer components {
-  .fest-shell {
-    @apply min-h-screen bg-fest-bg text-fest-ink;
+  .wrap {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-6 lg:px-8;
   }
-  .fest-container {
-    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  .card {
+    @apply rounded-2xl border border-ink-line bg-white shadow-[0_1px_2px_rgba(18,32,58,0.06)];
   }
-  .fest-card {
-    @apply rounded-2xl border border-fest-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.05)];
+  .card-link {
+    @apply card transition hover:-translate-y-0.5 hover:border-ocean/50 hover:shadow-[0_14px_30px_-16px_rgba(27,111,196,0.55)];
   }
-  .fest-card-hover {
-    @apply fest-card transition hover:-translate-y-0.5 hover:border-fest-blue/40 hover:shadow-[0_12px_28px_-14px_rgba(29,111,242,0.45)];
-  }
-  .fest-btn {
+  .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold transition
-           focus:outline-none focus-visible:ring-2 focus-visible:ring-fest-blue focus-visible:ring-offset-2
-           disabled:cursor-not-allowed disabled:opacity-50;
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-ocean focus-visible:ring-offset-2;
   }
-  .fest-btn-primary {
-    @apply fest-btn bg-fest-blue text-white hover:bg-[#1559C7];
+  .btn-primary {
+    @apply btn bg-navy text-white hover:bg-navy-soft;
   }
-  .fest-btn-dark {
-    @apply fest-btn bg-fest-navy text-white hover:bg-fest-navy2;
+  .btn-sun {
+    @apply btn bg-sun text-navy-deep hover:bg-sun-deep;
   }
-  .fest-btn-outline {
-    @apply fest-btn border border-fest-line bg-white text-fest-ink hover:border-fest-blue/50 hover:bg-fest-sky;
+  .btn-outline {
+    @apply btn border border-ink-line bg-white text-ink hover:border-ocean/50 hover:bg-ocean-mist;
   }
-  .fest-btn-ghost {
-    @apply fest-btn text-fest-muted hover:bg-fest-ink/5;
-  }
-  .fest-btn-sm {
+  .btn-sm {
     @apply rounded-lg px-3.5 py-2 text-xs;
   }
-  .fest-chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-fest-line bg-white px-2.5 py-1 text-xs font-semibold text-fest-muted;
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-ink-line bg-white px-2.5 py-1 text-xs font-semibold text-ink-muted;
   }
-  .fest-chip-blue {
-    @apply fest-chip border-fest-blue/25 bg-fest-sky text-fest-blue;
+  .chip-ocean {
+    @apply chip border-ocean/25 bg-ocean-mist text-navy;
   }
-  .fest-label {
-    @apply mb-1.5 block text-sm font-bold text-fest-ink;
+  .chip-sun {
+    @apply chip border-sun-deep/30 bg-sun/20 text-[#8A6A00];
   }
-  .fest-input {
-    @apply w-full rounded-xl border border-fest-line bg-white px-3.5 py-2.5 text-sm text-fest-ink
-           placeholder:text-fest-muted/70 focus:border-fest-blue focus:outline-none focus:ring-2 focus:ring-fest-blue/20;
+  .label {
+    @apply text-xs font-extrabold uppercase tracking-[0.18em] text-ocean;
   }
-  .fest-section-title {
-    @apply text-2xl font-extrabold tracking-tight text-fest-navy sm:text-3xl;
+  .h-section {
+    @apply text-2xl font-extrabold tracking-tight text-navy sm:text-3xl;
   }
-  .fest-eyebrow {
-    @apply text-xs font-extrabold uppercase tracking-[0.18em] text-fest-blue;
+  .field {
+    @apply w-full rounded-xl border border-ink-line bg-white px-3.5 py-2.5 text-sm text-ink
+           placeholder:text-ink-muted/70 focus:border-ocean focus:outline-none focus:ring-2 focus:ring-ocean/20;
   }
 }
 
-/* 얇은 스크롤바 */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d0d5dd transparent;
+  scrollbar-color: #cbd5e1 transparent;
 }

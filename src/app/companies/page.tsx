@@ -1,48 +1,43 @@
 import type { Metadata } from "next";
-import { PageHero } from "@/components/page-hero";
-import { listCompanies } from "@/lib/repo";
+import { COMPANIES, EXPO } from "@/lib/expo";
 import { CompanyExplorer } from "./company-explorer";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
-  title: "기업관",
-  description: "2026 김해 JOB FESTIVAL 참가 기업 전체 리스트 · 채용 직무 · 현장 면접 운영 정보",
+  title: "참여기업",
+  description: `${EXPO.title} 참여기업 목록 — 부스번호, 기업분류, 업종 안내`,
 };
 
-export default async function CompaniesPage() {
-  const companies = await listCompanies();
-  const totalHiring = companies.reduce(
-    (sum, c) => sum + c.positions.reduce((s, p) => s + p.headcount, 0),
-    0
-  );
-  const interviewing = companies.filter((c) => c.onSiteInterview).length;
+export default function CompaniesPage() {
+  const categories = new Set(COMPANIES.map((c) => c.category));
 
   return (
     <>
-      <PageHero
-        eyebrow="Zone A · 기업관"
-        title="참가 기업 전체보기"
-        description="기업 상세 소개를 확인하고 온라인 입사지원서를 제출한 뒤, 현장 면접 시간까지 직접 선택할 수 있습니다."
-      >
-        <dl className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
-          <div>
-            <dt className="text-white/50">참가기업</dt>
-            <dd className="mt-0.5 text-xl font-black">{companies.length}개사</dd>
-          </div>
-          <div>
-            <dt className="text-white/50">채용 예정 인원</dt>
-            <dd className="mt-0.5 text-xl font-black">{totalHiring}명</dd>
-          </div>
-          <div>
-            <dt className="text-white/50">현장 면접 운영</dt>
-            <dd className="mt-0.5 text-xl font-black">{interviewing}개사</dd>
-          </div>
-        </dl>
-      </PageHero>
+      <section className="border-b border-ink-line bg-navy text-white">
+        <div className="wrap py-12 sm:py-16">
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-sun">Companies</p>
+          <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">참여기업</h1>
+          <p className="mt-3 max-w-2xl text-sm text-white/75 sm:text-base">
+            {EXPO.boothSummary} · 기업을 선택하면 상세 소개를 볼 수 있습니다.
+          </p>
+          <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+            <div>
+              <dt className="text-white/50">참여기업</dt>
+              <dd className="mt-0.5 text-xl font-black">{COMPANIES.length}개사</dd>
+            </div>
+            <div>
+              <dt className="text-white/50">기업분류</dt>
+              <dd className="mt-0.5 text-xl font-black">{categories.size}종</dd>
+            </div>
+            <div>
+              <dt className="text-white/50">운영 시간</dt>
+              <dd className="mt-0.5 text-xl font-black">{EXPO.timeLabel}</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
 
-      <div className="fest-container py-10 sm:py-14">
-        <CompanyExplorer companies={companies} />
+      <div className="wrap py-10 sm:py-14">
+        <CompanyExplorer companies={COMPANIES} />
       </div>
     </>
   );
