@@ -1,20 +1,19 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { EXPO } from "@/lib/expo";
+import type { PosterInfo } from "@/lib/poster";
 
 /**
  * 메인 포스터.
  *  public/poster.jpg (또는 .png/.jpeg/.webp) 파일이 있으면 실제 포스터 이미지를,
  *  없으면 아래 디자인 버전을 보여줍니다. 클릭하면 참여기업 목록으로 이동합니다.
  */
-const CANDIDATES = ["/poster.jpg", "/poster.png", "/poster.jpeg", "/poster.webp"];
-
-export function PosterBoard() {
-  const [idx, setIdx] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const src = idx < CANDIDATES.length ? CANDIDATES[idx] : null;
+export function PosterBoard({ poster }: { poster: PosterInfo | null }) {
+  const [failed, setFailed] = useState(false);
+  const showImage = Boolean(poster) && !failed;
 
   return (
     <Link
@@ -22,18 +21,20 @@ export function PosterBoard() {
       aria-label="참여기업 목록 보기"
       className="group relative block overflow-hidden rounded-3xl shadow-[0_30px_60px_-30px_rgba(6,42,92,0.7)] ring-1 ring-navy/10 transition hover:-translate-y-1"
     >
-      {src && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
+      {showImage && poster ? (
+        <Image
+          src={poster.src}
           alt={`${EXPO.title} 포스터`}
-          className={`w-full ${loaded ? "block" : "hidden"}`}
-          onLoad={() => setLoaded(true)}
-          onError={() => setIdx((i) => i + 1)}
+          width={poster.width}
+          height={poster.height}
+          sizes="(max-width: 1024px) 100vw, 460px"
+          priority
+          className="h-auto w-full"
+          onError={() => setFailed(true)}
         />
+      ) : (
+        <PosterArt />
       )}
-
-      {!loaded && <PosterArt />}
 
       <span className="flex items-center justify-center gap-2 bg-navy-deep px-4 py-4 text-sm font-extrabold text-white">
         포스터를 클릭하면 참여기업 목록으로 이동합니다

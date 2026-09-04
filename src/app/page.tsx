@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { PosterBoard } from "@/components/poster-board";
 import { COMPANIES, EVENTS, EXPO, MENTORS, SESSIONS } from "@/lib/expo";
+import { findPoster } from "@/lib/poster";
 
 export default function HomePage() {
+  const poster = findPoster();
+
   return (
     <>
       {/* 포스터 */}
       <section className="bg-ink-bg py-10 sm:py-14">
         <div className="wrap grid items-center gap-10 lg:grid-cols-[minmax(0,460px)_1fr]">
-          <PosterBoard />
+          <PosterBoard poster={poster} />
 
           <div>
             <p className="label">{EXPO.year} Job Fair</p>
