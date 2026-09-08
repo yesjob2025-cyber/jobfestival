@@ -77,6 +77,7 @@ export const EVENTS = [
 
 /** 기업분류 표시 순서 (필터 탭) */
 export const CATEGORY_ORDER = [
+  "국가기관",
   "공기업",
   "공공기관",
   "준정부기관",
