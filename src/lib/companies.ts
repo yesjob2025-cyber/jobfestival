@@ -1137,7 +1137,7 @@ export const COMPANIES: ExpoCompany[] = [
       },
       {
         "label": "대표전화",
-        "value": "051-767-6000"
+        "value": "051-797-6000"
       },
       {
         "label": "업종",
