@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────
-// 2026 국립한국해양대학교 KMOU 취업박람회 — 행사 정보 · 참여기업 데이터
+// 2026 국립한국해양대학교(KMOU) 취업박람회 — 행사 정보 · 참여기업 데이터
 //
 // 이 파일 하나만 수정하면 사이트 전체에 반영됩니다.
 //  · 행사 개요 → EXPO
@@ -12,8 +12,8 @@
 import { COMPANIES, type ExpoCompany } from "./companies";
 
 export const EXPO = {
-  title: "2026 국립한국해양대학교 KMOU 취업박람회",
-  titleShort: "KMOU 취업박람회",
+  title: "2026 국립한국해양대학교(KMOU) 취업박람회",
+  titleShort: "국립한국해양대학교(KMOU) 취업박람회",
   year: "2026",
   dateLabel: "2026. 9. 10. (목)",
   dateShort: "9.10 THU",

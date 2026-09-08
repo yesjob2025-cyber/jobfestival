@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-/** 2026 KMOU 취업박람회 — 포스터 기준 브랜드 토큰 (네이비 · 오션블루 · 옐로) */
+/** 2026 국립한국해양대학교(KMOU) 취업박람회 — 포스터 기준 브랜드 토큰 (네이비 · 오션블루 · 옐로) */
 const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
