@@ -18,7 +18,9 @@ export function CompanyExplorer({ companies }: { companies: ExpoCompany[] }) {
     return companies.filter((c) => {
       if (category !== "전체" && c.category !== category) return false;
       if (!keyword) return true;
-      return `${c.name} ${c.category} ${c.industry} ${c.boothNo}`.toLowerCase().includes(keyword);
+      return `${c.name} ${c.altName ?? ""} ${c.category} ${c.industry} ${c.boothNo} ${c.intro ?? ""}`
+        .toLowerCase()
+        .includes(keyword);
     });
   }, [companies, q, category]);
 
@@ -64,10 +66,14 @@ export function CompanyExplorer({ companies }: { companies: ExpoCompany[] }) {
                 </span>
                 <div className="min-w-0">
                   <p className="text-[15px] font-extrabold leading-snug text-navy">{c.name}</p>
-                  <p className="mt-0.5 text-xs text-ink-muted">부스 {c.boothNo}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">
+                    부스 {c.boothNo} · {c.industry}
+                  </p>
                 </div>
               </div>
-              <p className="mt-3 line-clamp-2 text-sm text-ink-soft">{c.industry}</p>
+              <p className="mt-3 line-clamp-2 text-sm text-ink-soft">
+                {c.intro ?? c.industry}
+              </p>
               <div className="mt-4 flex items-center justify-between border-t border-ink-line pt-3">
                 <span className="chip-ocean">{c.category}</span>
                 <span className="text-xs font-bold text-ocean">상세보기 →</span>
