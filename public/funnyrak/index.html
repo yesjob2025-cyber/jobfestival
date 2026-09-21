@@ -314,9 +314,10 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
 <div class="gate" id="gate">
   <div class="box">
     <h1>하루 계획</h1>
-    <p>이메일을 넣으면 로그인 링크를 보내드립니다.<br>같은 이메일로 로그인하면 폰과 PC가 같은 기록을 봅니다.</p>
-    <input type="email" id="gMail" placeholder="이메일 주소" autocomplete="email" inputmode="email">
-    <button class="save" id="gSend" style="margin-top:0">로그인 링크 받기</button>
+    <p>아이디와 비밀번호로 들어옵니다.<br>한 번 로그인하면 이 기기에서는 계속 유지됩니다.</p>
+    <input type="text" id="gId" placeholder="아이디" value="funnyrak" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <input type="password" id="gPw" placeholder="비밀번호" autocomplete="current-password">
+    <button class="save" id="gSend" style="margin-top:0">들어가기</button>
     <div class="msg" id="gMsg"></div>
     <button class="skip" id="gSkip">이 기기에만 저장하고 쓰기</button>
   </div>
@@ -355,7 +356,7 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
   </div>
   <div class="btnrow">
     <button class="allbtn" id="boardBtn">주간 업무 보드</button>
-    <button class="allbtn" id="backupBtn">백업 · 이전</button>
+    <button class="allbtn" id="backupBtn">백업 · 계정</button>
   </div>
   <div class="wsum" id="wsum"></div>
   <p class="foot">할 일 — 중요 2점 · 일상 1점 (더 하면 더 쌓입니다)<br>운동·산책은 다시 누를 때마다 횟수가 올라갑니다</p>
@@ -446,7 +447,7 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
 
 <div class="sheet" id="sheet7">
   <div class="sin">
-    <div class="shead"><h2>백업 · 이전</h2><button class="x" id="s7Close" aria-label="닫기">×</button></div>
+    <div class="shead"><h2>백업 · 계정</h2><button class="x" id="s7Close" aria-label="닫기">×</button></div>
     <p class="ssub">주소나 기기를 바꿀 때 기록을 그대로 옮길 수 있습니다.<br>아래 글자 전체가 지금까지의 기록입니다.</p>
     <div class="fl" style="margin-top:0">내 기록 <span id="s7Info" style="font-weight:500"></span></div>
     <textarea id="s7Box" rows="7" spellcheck="false" style="font-family:ui-monospace,monospace;font-size:12px"></textarea>
@@ -458,6 +459,14 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
     <textarea id="s7In" rows="5" spellcheck="false" placeholder="복사해 둔 백업 글자를 여기에 붙여넣으세요" style="font-family:ui-monospace,monospace;font-size:12px"></textarea>
     <button class="save" id="s7Load">불러오기</button>
     <p class="hint" id="s7Msg">불러오면 지금 기기의 기록은 덮어써집니다. 먼저 위쪽 내용을 복사해 두세요.</p>
+    <div id="s7Acc" style="display:none">
+      <div class="fl">비밀번호 바꾸기</div>
+      <input type="password" id="pw1" placeholder="새 비밀번호 (6자 이상)" autocomplete="new-password">
+      <input type="password" id="pw2" placeholder="한 번 더" autocomplete="new-password" style="margin-top:7px">
+      <button class="save" id="pwSave" style="margin-top:9px">비밀번호 변경</button>
+      <p class="hint" id="pwMsg" style="border:0;padding-top:0;margin-top:8px"></p>
+    </div>
+    <button class="del2" id="s7Out" style="display:none">이 기기에서 로그아웃</button>
   </div>
 </div>
 
@@ -1473,7 +1482,30 @@ function renderPray(){
 const sheet7=document.getElementById('sheet7');
 document.getElementById('s7Close').addEventListener('click',()=>sheet7.classList.remove('open'));
 sheet7.addEventListener('click',e=>{if(e.target===sheet7)sheet7.classList.remove('open')});
+document.getElementById('pwSave').addEventListener('click',async()=>{
+  const a=document.getElementById('pw1').value,b=document.getElementById('pw2').value,
+        m=document.getElementById('pwMsg');
+  m.style.color='#C0424F';
+  if(a.length<6){m.textContent='6자 이상으로 정해주세요.';return}
+  if(a!==b){m.textContent='두 칸이 서로 다릅니다.';return}
+  m.style.color='var(--soft)';m.textContent='바꾸는 중…';
+  const {error}=await sb.auth.updateUser({password:a});
+  if(error){m.style.color='#C0424F';
+    m.textContent=/same|different/i.test(error.message)?'지금 비밀번호와 같습니다.':'바꾸지 못했습니다 — '+error.message;return}
+  m.style.color='#1F7A5A';m.textContent='변경했습니다. 다른 기기에서는 다음 로그인부터 새 비밀번호를 씁니다.';
+  document.getElementById('pw1').value='';document.getElementById('pw2').value='';
+});
+document.getElementById('s7Out').addEventListener('click',async()=>{
+  if(!sb||!confirm('로그아웃할까요? 기록은 서버에 남아 있어 다시 로그인하면 그대로 보입니다.'))return;
+  await sb.auth.signOut();cloud=false;uid=null;sheet7.classList.remove('open');
+  document.getElementById('sync').style.display='none';
+  gate.classList.add('on');
+});
 document.getElementById('backupBtn').addEventListener('click',()=>{
+  document.getElementById('s7Out').style.display=cloud?'block':'none';
+  document.getElementById('s7Acc').style.display=cloud?'block':'none';
+  document.getElementById('pw1').value='';document.getElementById('pw2').value='';
+  document.getElementById('pwMsg').textContent='';
   const raw=JSON.stringify(ST);
   document.getElementById('s7Box').value=raw;
   const days=Object.keys(ST.log||{}).length;
@@ -1533,17 +1565,27 @@ function pickNewer(a,b){
 }
 
 const gate=document.getElementById('gate');
+const ID_DOMAIN='jobfestival.co.kr';
+const toEmail=id=>id.indexOf('@')>-1?id:id+'@'+ID_DOMAIN;
 document.getElementById('gSend').addEventListener('click',async()=>{
-  const mail=document.getElementById('gMail').value.trim(),msg=document.getElementById('gMsg');
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)){msg.className='msg err';msg.textContent='이메일 형식을 확인해 주세요.';return}
-  msg.className='msg';msg.textContent='보내는 중…';
-  const {error}=await sb.auth.signInWithOtp({email:mail,options:{emailRedirectTo:location.href.split('#')[0]}});
-  if(error){msg.className='msg err';msg.textContent='보내지 못했습니다 — '+error.message;return}
-  msg.className='msg ok';msg.textContent=mail+' 로 링크를 보냈습니다.\n메일에서 링크를 누르면 바로 시작됩니다.';
+  const id=document.getElementById('gId').value.trim().toLowerCase(),
+        pw=document.getElementById('gPw').value,
+        msg=document.getElementById('gMsg'),btn=document.getElementById('gSend');
+  if(!id||!pw){msg.className='msg err';msg.textContent='아이디와 비밀번호를 넣어주세요.';return}
+  msg.className='msg';msg.textContent='확인 중…';btn.disabled=true;
+  const {error}=await sb.auth.signInWithPassword({email:toEmail(id),password:pw});
+  btn.disabled=false;
+  if(error){
+    msg.className='msg err';
+    msg.textContent=/invalid/i.test(error.message)?'아이디 또는 비밀번호가 맞지 않습니다.':'들어가지 못했습니다 — '+error.message;
+    return;
+  }
+  msg.textContent='';document.getElementById('gPw').value='';
+  if(!cloud)startCloud();
 });
-document.getElementById('gMail').addEventListener('keydown',e=>{
-  if(e.key==='Enter')document.getElementById('gSend').click();
-});
+['gId','gPw'].forEach(i=>document.getElementById(i).addEventListener('keydown',e=>{
+  if(e.key==='Enter'){if(i==='gId')document.getElementById('gPw').focus();else document.getElementById('gSend').click()}
+}));
 document.getElementById('gSkip').addEventListener('click',async()=>{
   localOnly=true;gate.classList.remove('on');
   ST=normalize(await Store.load());migrate();setSync('','이 기기에만 저장');render();
@@ -1561,7 +1603,7 @@ document.getElementById('sync').addEventListener('click',async()=>{
 
 async function startCloud(){
   const {data:{session}}=await sb.auth.getSession();
-  if(!session){gate.classList.add('on');return}
+  if(!session){gate.classList.add('on');setTimeout(()=>document.getElementById('gId').focus(),100);return}
   uid=session.user.id;cloud=true;gate.classList.remove('on');
   setSync('busy','불러오는 중');
   let remote=null;
@@ -1572,7 +1614,7 @@ async function startCloud(){
   migrate();
   await Store.save(ST);
   render();
-  try{await cloudPut();setSync('ok','동기화됨 · '+session.user.email)}
+  try{await cloudPut();setSync('ok','동기화됨 · '+session.user.email.split('@')[0])}
   catch(e){setSync('err','저장 실패 · 눌러서 다시 시도')}
   if(location.hash.indexOf('access_token')>-1)history.replaceState(null,'',location.pathname+location.search);
 }
@@ -1580,7 +1622,7 @@ async function startCloud(){
 (async()=>{
   if(SB_URL&&SB_KEY&&window.supabase){
     sb=window.supabase.createClient(SB_URL,SB_KEY);
-    sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_IN'&&!cloud)startCloud()});
+    sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_IN'&&!cloud)setTimeout(()=>{if(!cloud)startCloud()},0)});
     await startCloud();
   }else{
     ST=normalize(await Store.load());migrate();render();
