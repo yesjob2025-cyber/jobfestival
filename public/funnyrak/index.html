@@ -613,6 +613,7 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
 </div>
 
 <script>
+const BOOK_SEED=[["조벽교수의 인재혁명","조벽","해냄",259,"2018-01-06","2018-01-08","2018","육아·교육"],["유시민의 글쓰기 혁명","유시민","생각의 길",292,"2018-01-08","2018-01-13","2018","실무"],["프로기획자의 전략적사고","김재문","새로운 제안",223,"2018-01-14","2018-01-23","2018","실무"],["화첩기행 1","김병종","문학동네",362,"2018-01-24","2018-01-28","2018","에세이"],["기획서 다이어트","도영태","더난출판",312,"2018-01-30","2018-02-05","2018","실무"],["토지 (1부 1권)","박경리","마로니에 출판",418,"2018-02-06","2018-02-17","2018","소설"],["서울문학기행","방민호","arte",366,"2018-02-18","2018-02-20","2018","에세이"],["기획서 마스터","윤영돈","새로운 제안",303,"2018-02-10","2018-02-22","2018","실무"],["화첩기행 2","김병종","문학동네",309,"2018-02-25","2018-03-02","2018","에세이"],["입찰의 기술 마력의 제안서","류현주","대림북스",358,"2018-02-25","2018-03-04","2018","실무"],["여행자의 철학법","김효경","웅진지식하우스",311,"2018-03-05","2018-03-09","2018","일반교양"],["토지(1부 2권)","박경리","마로니에 출판",433,"2018-03-05","2018-03-10","2018","소설"],["누구를 어떻게 뽑을 것인가","제프스마트, 랜디스트리트","부키",224,"2018-03-11","2018-03-14","2018","실무"],["토지(1부 3권)","박경리","마로니에 출판",416,"2018-03-18","2018-03-21","2018","소설"],["토지(1부 4권)","박경리","마로니에 출판",419,"2018-03-26","2018-04-08","2018","소설"],["세계 최고의 인재들은 왜 기본에 집중할까","도쓰카 다카마사","비즈니스 북스",248,"2018-04-10","2018-04-11","2018","자기계발"],["바깥은 여름","김애란","문학동네",269,"2018-04-13","2018-04-15","2018","소설"],["프레젠테이션 젠","가르 레이놀즈","에이콘",239,"2018-04-21","2018-04-26","2018","실무"],["생각정리를 위한 노트의 기술","이상혁","스펙트럼 북스",222,"2018-04-26","2018-04-28","2018","자기계발"],["토지(2부 1권)","박경리","마로니에 출판",428,"2018-05-08","2018-05-13","2018","소설"],["흰","한강","난다",129,"2018-05-16","2018-05-17","2018","소설"],["핀란드 교육의 성공","후쿠타 세이지","북스힐",247,"2018-05-20","2018-05-27","2018","육아·교육"],["토지(2부 2권)","박경리","마로니에 출판",411,"2018-05-28","2018-06-06","2018","소설"],["토지(2부 3권)","박경리","마로니에 출판",423,"2018-06-07","2018-06-14","2018","소설"],["토지(2부 4권)","박경리","마로니에 출판",423,"2018-06-24","2018-07-06","2018","소설"],["고객을 사로잡는 매력적인 제안서와 창의적인 제안팀 이야기","류현주","한빛미디어",272,"2018-06-24","2018-07-06","2018","실무"],["토지(3부 1권)","박경리","마로니에 출판",467,"2018-07-08","2018-07-22","2018","소설"],["놀이의 반란","EBS제작팀","지식너머",250,"2019-02-07","2019-02-16","2019","육아·교육"],["평경특취","고귀한, 지규한","와우패스",235,"2019-02-16","2019-02-22","2019","실무"],["하루 10분 아빠육아","안성진","가나북스",212,"2019-02-22","2019-02-23","2019","육아·교육"],["징비록","류성룡","홍익출판사",334,"2019-02-27","2019-03-03","2019","일반교양"],["토지(3부 4권)","박경리","마로니에 출판",472,"2019-03-02","2019-03-15","2019","소설"],["일취월장","고영성 신현준","로크미디어",553,"2019-02-27","2019-03-21","2019","자기계발"],["토지(4부 1권)","박경리","마로니에 출판",485,"2019-04-20","2019-05-12","2019","소설"],["아몬드","손원평","창작과비평사",264,"2020-01-07","2020-01-13","2020","소설"],["파인만, 과학을 웃겨주세요","김성화, 권수진","탐",200,"2020-01-13","2020-01-20","2020","일반교양"],["여행의 이유","이영하","문학동네",216,"2020-01-20","2020-01-25","2020","에세이"],["시간과 공간의 흐름을 타는 국어수업","김명희","창비교육",288,"2020-01-19","2020-02-02","2020","육아·교육"],["파피용","베르나르 베르베르","열린책들",433,"2020-01-28","2020-02-05","2020","소설"],["포노 사피엔스","최재붕","쌤앤파커스",336,"2020-02-06","2020-02-13","2020","일반교양"],["꿈은 모르겠고 취업은 하고싶어","금두환","다산북스",272,"2020-02-14","2020-02-15","2020","실무"],["하마터면 열심히 살 뻔했다","하완","웅진지식하우스",288,"2020-02-16","2020-02-18","2020","에세이"],["삼국지 1권","이문열","민음사",350,"2020-02-18","2020-02-24","2020","소설"],["삼국지 2권","이문열","민음사",350,"2020-02-25","2020-02-29","2020","소설"],["삼국지 3권","이문열","민음사",350,"2020-03-01","2020-03-05","2020","소설"],["삼국지 4권","이문열","민음사",350,"2020-03-05","2020-03-10","2020","소설"],["삼국지 5권","이문열","민음사",350,"2020-03-10","2020-03-15","2020","소설"],["삼국지 6권","이문열","민음사",350,"2020-03-15","2020-03-20","2020","소설"],["삼국지 7권","이문열","민음사",350,"2020-03-20","2020-03-25","2020","소설"],["삼국지 8권","이문열","민음사",350,"2020-03-25","2020-03-30","2020","소설"],["삼국지 9권","이문열","민음사",350,"2020-03-30","2020-04-03","2020","소설"],["삼국지 10권","이문열","민음사",350,"2020-04-03","2020-04-05","2020","소설"],["클라우스 슈밥의 제 4차 산업혁명","클라우스 슈밥","새로운 현재",288,"2020-03-23","2020-04-05","2020","일반교양"],["아이의 사생활 1. 두뇌, 인지발달","EBS제작팀","지식플러스",288,"2020-04-07","2020-04-11","2020","육아·교육"],["아이의 사생활 2.정서, 인성발달","EBS제작팀","지식플러스",282,"2020-04-15","2020-04-19","2020","육아·교육"],["고양이 1","베르나르 베르베르","열린책들",240,"2020-04-10","2020-04-21","2020","소설"],["고양이 2","베르나르 베르베르","열린책들",248,"2020-04-22","2020-04-26","2020","소설"],["마시멜로 이야기","호아킴 데 포사다, 엘런싱어","한국경제신문사",173,"2020-04-29","2020-04-30","2020","자기계발"],["종의기원","정유정","은행나무",384,"2020-05-01","2020-05-05","2020","소설"],["82년생 김지영","조남주","민음사",192,"2020-05-08","2020-05-09","2020","소설"],["녹나무의 파수꾼","히가시노 게이고","소미미디어",556,"2020-05-10","2020-05-16","2020","소설"],["이기는 취업","김나이","매일경제신문사",300,"2020-05-14","2020-05-17","2020","실무"],["스타트업 바이블","빌 올렛","비즈니스 북스",400,"2020-04-05","2020-05-24","2020","실무"],["전쟁 연대기 1","조셉 커민스","니케북스",408,"2020-05-25","2020-06-06","2020","일반교양"],["가면산장 살인사건","히가시노 게이고","재인",336,"2020-06-07","2020-06-07","2020","소설"],["배민다움","홍성태","북스톤",288,"2020-06-09","2020-06-19","2020","실무"],["전쟁 연대기 2","조셉 커민스","니케북스",424,"2020-06-08","2020-06-27","2020","일반교양"],["그들이 말하지 않는 23가지","장하준","부키",368,"2020-05-25","2020-06-28","2020","일반교양"],["정글만리1","조정래","해냄",412,"2020-06-30","2020-07-10","2020","소설"],["정글만리2","조정래","해냄",408,"2020-07-10","2020-07-20","2020","소설"],["정글만리3","조정래","해냄",420,"2020-07-20","2020-07-25","2020","소설"],["아몬드","손원평","창작과비평사",264,"2020-07-28","2020-07-29","2020","소설"],["킬리만자로에서 안녕","이옥수","비룡소",228,"2020-07-30","2020-07-31","2020","소설"],["90년생이 온다","임홍택","웨일북",336,"2020-08-05","2020-08-20","2020","일반교양"],["채식주의자","한강","창비",247,"2020-08-10","2020-08-21","2020","소설"],["마켓 3.0","필립코틀러","타임비즈",300,"2020-08-22","2020-08-30","2020","실무"],["심판","베르나르 베르베르","열린책들",224,"2020-11-14","2020-11-15","2020","소설"],["식탁위의 세계사","이영숙","창비",192,"2020-12-18","2020-12-19","2020","일반교양"],["트렌드 코리아 2021","김난도 외","미래의 창",400,"2020-12-20","2020-12-30","2020","일반교양"],["서울 문학기행","방민호","아르테",380,"2020-12-20","2021-12-24","2020","에세이"],["마케터의 문장","가나가와 아키노리","인풀루엔셜",256,"2021-12-24","2021-12-30","2020","실무"],["열두 발자국","정재승","어크로스",400,"2021-01-01","2021-01-06","2021","일반교양"],["세상의 모든 전략은 전쟁에서 탄생했다","임용한","교보문고",288,"2021-01-08","2021-01-10","2021","일반교양"],["마케터의 문장","가나가와 아키노리","인풀루엔셜",256,"2021-01-08","2021-01-10","2021","실무"],["옷장 속의 세계사","이영숙","창비",200,"2021-01-08","2021-01-10","2021","일반교양"],["누구를 어떻게 뽑을 것인가?","제프스마트, 랜디 스트리트","부키",224,"2021-01-12","2021-01-17","2021","실무"],["프리즘","손원평","은행나무",266,"2021-01-18","2021-01-23","2021","소설"],["일곱 해의 마지막","김연수","문학동네",246,"2021-01-25","2021-01-30","2021","소설"],["명견만리(모두를 위한 공존의 시대를 말하다)","KBS 명견만리 제작팀","인플루엔셜",314,"2021-01-30","2021-01-31","2021","일반교양"],["리스본행 야간열차","파스칼 메르시아","들녘",586,"2021-02-05","2021-02-25","2021","소설"],["에이트","이지성","차이정원",308,"2021-03-12","2021-03-22","2021","자기계발"],["로마인 이야기 1편. 로마는 하루아침에 이루어지지 않았다.","시오노 나나미","한길사",321,"2021-03-10","2021-03-23","2021","일반교양"],["로마인 이야기 2편, 한니발 전쟁","시오노 나나미","한길사",446,"2021-03-25","2021-04-10","2021","일반교양"],["로마인 이야기 3편, 승자의 혼미","시오노 나나미","한길사",298,"2021-04-11","2021-04-30","2021","일반교양"],["1년 안에 AI 빅데이터 전문가가 되는 법","서대호","반니",272,"2021-05-11","2021-05-20","2021","실무"],["명견만리_미래의 기회편","KBS 명견만리 제작팀","인플루엔셜",320,"2021-08-05","2021-08-15","2021","일반교양"],["이번 생은 n잡러","한승현","매일경제신문사",312,"2021-08-12","2021-08-22","2021","자기계발"],["초한지 1권","이문열","민음사",318,"2021-08-12","2021-08-29","2021","소설"],["초한지 2권","이문열","민음사",306,"2021-08-30","2021-09-04","2021","소설"],["초한지 3권","이문열","민음사",284,"2021-09-10","2021-09-20","2021","소설"],["초한지 4권","이문열","민음사",305,"2021-10-01","2021-10-09","2021","소설"],["거꾸로 보는 고대사 (민족과 국가의 경계 너무 한반도 고대사 이야기)","박노자","한겨레출판",304,"2021-10-06","2021-10-10","2021","일반교양"],["빅데이터 기초 : 개념, 동인, 기법","Thomas Erl, Wajid","시그마프레스",240,"2021-09-15","2021-10-10","2021","실무"],["초한지 5권","이문열","민음사",302,"2021-10-12","2021-10-16","2021","소설"],["역사의 쓸모","최태성","다산초당",296,"2021-10-17","2021-10-17","2021","일반교양"],["읽다","김영하","문학동네",218,"2021-10-18","2021-10-19","2021","에세이"],["지리의 힘","팀마샬","사이",367,"2021-10-01","2021-10-23","2021","일반교양"],["초한지 6권","이문열","민음사",300,"2021-10-25","2021-10-30","2021","소설"],["초한지 7권","이문열","민음사",304,"2021-11-02","2021-11-10","2021","소설"],["초한지 8권","이문열","민음사",306,"2021-11-14","2021-11-21","2021","소설"],["초한지 9권","이문열","민음사",304,"2021-11-21","2021-11-28","2021","소설"],["초한지 10권","이문열","민음사",306,"2021-12-02","2021-12-15","2021","소설"],["그냥 하지마라","송길영","북스톤",284,"2022-01-24","2022-02-06","2022","실무"],["불량한 자전거 여행","김남중","창비",230,"2022-02-07","2022-02-09","2022","소설"],["어린왕자","생텍쥐페리","비룡소",128,"2022-02-11","2022-02-13","2022","소설"],["경성 엘리트의 만국 유람기","나혜석, 최승희 등","현실문화",416,"2022-02-18","2022-02-28","2022","에세이"],["스몰스텝","박요철","뜨인돌",256,"2022-02-18","2022-03-02","2022","자기계발"],["조선 여성 첫 세계 일주기","나혜석","가갸날",232,"2022-03-07","2022-03-12","2022","에세이"],["세상을 읽는 새로운 언어, 빅데이터","조성준","21세기북스",276,"2022-02-13","2022-03-21","2022","실무"],["삼국시대, 진실과 반전의 역사","권오영","21세기북스",260,"2022-03-20","2022-03-23","2022","일반교양"],["용기없는 일주일","정은숙","창비",236,"2022-04-24","2022-05-08","2022","소설"],["한국 고대사 산책","한국역사연구회","역사비평사",448,"2022-04-26","2022-05-08","2022","일반교양"],["한국 고대사와 사이비역사학","젊은역사학자모임","역사비평사",312,"2022-05-15","2022-05-29","2022","일반교양"],["일상이 고고학 나혼자 백제여행","황윤","책읽는 고양이",256,"2022-09-05","2022-09-24","2022","일반교양"],["차이나는 클라스","차이나는클라스 제작팀","중앙Books",409,"2022-11-02","2022-11-16","2022","일반교양"],["일상이 고고학 나혼자 국립중앙박물관","황윤","책읽는 고양이",411,"2022-11-21","2022-12-09","2022","일반교양"],["비전공자를 위한 이해할 수 있는 IT지식","최원영","티더블유아이지",238,"2022-11-21","2022-12-09","2022","실무"],["창업가의 습관","이상훈","좋은습관연구소",264,"2022-12-15","2022-12-25","2022","실무"],["스토너","존 윌리엄스","알에이치코리아",396,"2023-02-21","2023-02-23","2023","소설"],["인간만세","오한기","작가정신",208,"2023-03-10","2023-03-19","2023","소설"],["어른이 된다는 서글픈 일","김보통","한겨레출판",200,"2023-03-23","2023-04-10","2023","에세이"],["밝은 밤","최은영","문학동네",344,"2024-02-08","2024-02-10","2024","소설"],["이토록 평범한 미래","김연수","문학동네",276,"2024-02-10","2024-02-17","2024","소설"],["담을 넘은 아이","김정민","비룡소",164,"2024-02-25","2024-03-03","2024","소설"]];
 const DEFAULT_PRAYERS={"morning": "* 십자 성호를 그으며\n╋ 성부와 성자와 성령의 이름으로.\n◎ 아멘.\n\n○ 하늘에 계신 우리 아버지,\n아버지의 이름이 거룩히 빛나시며\n아버지의 나라가 오시며\n아버지의 뜻이 하늘에서와 같이\n땅에서도 이루어지소서!\n● 오늘 저희에게 일용할 양식을 주시고\n저희에게 잘못한 이를 저희가 용서하오니\n저희 죄를 용서하시고\n저희를 유혹에 빠지지 않게 하시고\n악에서 구하소서.\n◎ 아멘.\n\n◎ 하느님, 저를 사랑으로 내시고\n저에게 영혼 육신을 주시어\n주님만을 섬기고 사람을 도우라 하셨나이다.\n저는 비록 죄가 많사오나\n주님께 받은 몸과 마음을 오롯이 도로 바쳐\n찬미와 봉사의 제물로 드리오니\n어여삐 여기시어 받아 주소서.\n◎ 아멘.\n\n╋ 우리 주 하느님께 권능과 영광\n지혜와 굳셈이 있사오니\n찬미와 감사와 흠숭을 영원히 받으소서.\n◎ 아멘.\n\n╋ 전능하신 하느님,\n오늘도 저희 생각과 말과 행위를\n주님의 평화로 이끌어 주소서.\n◎ 아멘.", "evening": "* 십자 성호를 그으며\n╋ 성부와 성자와 성령의 이름으로.\n◎ 아멘.\n\n╋ 주님, 오늘 생각과 말과 행위로 지은 죄와\n의무를 소홀히 한 죄를 자세히 살피고\n그 가운데 버릇이 된 죄를 깨닫게 하소서.\n* 잠깐 반성한다.\n\n◎ 하느님,\n제가 죄를 지어\n참으로 사랑받으셔야 할\n하느님의 마음을 아프게 하였기에\n악을 저지르고 선을 멀리한 모든 잘못을\n진심으로 뉘우치나이다.\n하느님의 은총으로 속죄하고\n다시는 죄를 짓지 않으며\n죄지을 기회를 피하기로 굳게 다짐하오니\n우리 구세주 예수 그리스도의 수난 공로를 보시고\n저에게 자비를 베풀어 주소서.\n아멘.\n\n○ 하느님, 하느님께서는 진리의 근원이시며\n그르침이 없으시므로\n계시하신 진리를\n교회가 가르치는 대로 굳게 믿나이다.\n\n● 하느님, 하느님께서는 자비의 근원이시며\n저버림이 없으시므로\n예수 그리스도의 공로를 통하여 주실\n구원의 은총과 영원한 생명을 바라나이다.\n\n○ 하느님, 하느님께서는 사랑의 근원이시며\n한없이 좋으시므로\n마음을 다하여 주님을 사랑하며\n이웃을 제 몸같이 사랑하나이다.\n\n╋ 하늘에 계신 우리 아버지,\n오늘 하루도 이미 저물었나이다.\n이제 저희는 구세주 예수 그리스도를 통하여\n모든 천사와 성인과 함께 주님을 흠숭하며\n지금 이 순간까지 베풀어 주신\n주님의 사랑에 감사하나이다.\n◎ 아멘.\n\n╋ 전능하신 천주\n* 십자 성호를 그으며\n성부와 성자와 성령께서는\n저희에게 강복하시고 지켜 주소서.\n◎ 아멘.", "salve": "○ 모후이시며 사랑이 넘친 어머니,\n우리의 생명, 기쁨, 희망이시여,\n● 당신 우러러 하와의 그 자손들이\n눈물을 흘리며 부르짖나이다.\n슬픔의 골짜기에서,\n○ 우리들의 보호자 성모님,\n불쌍한 저희를\n인자로운 눈으로 굽어보소서.\n● 귀양살이 끝날 때에\n당신의 아들 우리 주 예수님 뵙게 하소서.\n너그러우시고, 자애로우시며\n오! 아름다우신 동정 마리아님.\n\n○ 천주의 성모님, 저희를 위하여 빌어주시어\n● 그리스도께서 약속하신 영원한 생명을 얻게 하소서.\n\n† 기도합시다.\n하느님, 외아드님이\n삶과 죽음과 부활로써\n저희에게 영원한 구원을 마련해 주셨나이다.\n복되신 동정 마리아와 함께 이 신비를 묵상하며\n묵주기도를 바치오니\n저희가 그 가르침을 따라\n영원한 생명을 얻게 하소서.\n우리 주 그리스도를 통하여 비나이다.\n◎ 아멘."};
 const A={신앙:'#7B5FE0',건강:'#2F9E77',성장:'#2F6FE8',업무:'#DE922A',마음:'#E4658E'};
 const GROUP={신앙:'영성',건강:'운동',성장:'성장',업무:'일',마음:'성장'};
@@ -1914,6 +1915,7 @@ function renderTpl(){
 
 /* ---------- 서재 ---------- */
 const BK_ST={r:'읽는 중',d:'완독',x:'중단',w:'읽을 책'};
+const BK_CAT=['소설','일반교양','실무','에세이','자기계발','육아·교육','기타'];
 const reading=()=>(ST.books||[]).filter(b=>b.st==='r');
 function noteOf(x){
   if(x.rec&&x.rec.t==='독서 메모'){
@@ -1961,99 +1963,104 @@ let libSeg='r',libEdit=null,libQ='';
 document.getElementById('libBtn').addEventListener('click',()=>openLib());
 document.getElementById('s12Close').addEventListener('click',()=>{sheet12.classList.remove('open');render()});
 sheet12.addEventListener('click',e=>{if(e.target===sheet12){sheet12.classList.remove('open');render()}});
-function openLib(mode){libEdit=mode==='add'?'new':null;libSeg=reading().length?'r':'d';renderLib();sheet12.classList.add('open');sheet12.querySelector('.sin').scrollTop=0}
+function openLib(mode){libEdit=mode==='add'?'new':null;renderLib();sheet12.classList.add('open');sheet12.querySelector('.sin').scrollTop=0}
 const yOf=b=>{if(b.yr)return b.yr;const m=(b.end||b.start||'').match(/^(\d{4})/);return m?m[1]:''};
+let libCat='전체';
 function renderLib(){
   const top=document.getElementById('s12Top'),seg=document.getElementById('s12Seg'),body=document.getElementById('s12Body');
   top.innerHTML='';seg.innerHTML='';body.innerHTML='';
+  if(libEdit){seg.style.display='none';body.appendChild(bookForm(libEdit));return}
+  seg.style.display='flex';seg.style.flexWrap='wrap';
   const books=ST.books||[],Y=String(new Date().getFullYear());
-  const done=books.filter(b=>b.st==='d'),thisY=done.filter(b=>yOf(b)===Y);
-  const goal=ST.bookGoal||24;
-  const pages=thisY.reduce((a,b)=>a+(+b.pg||0),0);
+  const done=books.filter(b=>b.st==='d'),thisY=done.filter(b=>yOf(b)===Y),goal=ST.bookGoal||24;
+  const pages=done.reduce((a,b)=>a+(+b.pg||0),0);
   top.innerHTML=`<div class="lsum">
-    <div><div class="k">${Y}년 완독</div><div class="v">${thisY.length}<small> / 목표 ${goal}권</small></div>
-      <div class="gp"><i style="width:${Math.min(100,thisY.length/goal*100)}%"></i></div></div>
-    <div><div class="k">올해 읽은 쪽</div><div class="v">${pages.toLocaleString()}<small>쪽</small></div>
-      <div class="k" style="margin-top:6px">전체 ${done.length}권 · 읽는 중 ${reading().length}권</div></div></div>`;
-  // 연도별
+    <div><div class="k">읽은 책</div><div class="v">${done.length}<small>권</small></div>
+      <div class="k" style="margin-top:6px">${pages.toLocaleString()}쪽</div></div>
+    <div><div class="k">${Y}년</div><div class="v">${thisY.length}<small> / ${goal}권</small></div>
+      <div class="gp"><i style="width:${Math.min(100,thisY.length/goal*100)}%"></i></div></div></div>`;
   const ys={};done.forEach(b=>{const y=yOf(b);if(y)ys[y]=(ys[y]||0)+1});
-  const yl=Object.keys(ys).sort().slice(-8);
-  if(yl.length>1){
-    const mx=Math.max(...yl.map(y=>ys[y]));
-    const yr=document.createElement('div');yr.className='lyear';
-    yr.innerHTML=yl.map(y=>`<div class="${y===Y?'now':''}"><em>${ys[y]}</em><b style="height:${Math.max(4,ys[y]/mx*40)}px"></b><span>${y.slice(2)}년</span></div>`).join('');
-    top.appendChild(yr);
-  }
-  [['r','읽는 중 '+reading().length],['w','읽을 책 '+books.filter(b=>b.st==='w').length],['d','완독 '+done.length],['all','전체']].forEach(([m,l])=>{
-    const b=document.createElement('button');b.type='button';b.className=libSeg===m?'on':'';b.textContent=l;
-    b.addEventListener('click',()=>{libSeg=m;libEdit=null;renderLib()});seg.appendChild(b);
+  if(!ys[Y])ys[Y]=0;
+  const yl=Object.keys(ys).sort().slice(-9);
+  const mx=Math.max(1,...yl.map(y=>ys[y]));
+  const yr=document.createElement('div');yr.className='lyear';
+  yr.innerHTML=yl.map(y=>`<div class="${y===Y?'now':''}"><em>${ys[y]||''}</em><b style="height:${Math.max(3,ys[y]/mx*40)}px"></b><span>${y.slice(2)}년</span></div>`).join('');
+  top.appendChild(yr);
+  // 지금 읽는 중
+  const rs=books.filter(b=>b.st==='r');
+  rs.forEach(b=>{
+    const c=document.createElement('div');c.className='bk';c.style.borderColor='#C9DAF8';c.style.background='#F5F8FE';
+    c.innerHTML=`<div class="bt2" style="margin:0 0 3px;color:var(--grow);font-weight:700">지금 읽는 중</div><div class="bt1">${esc(b.t)}</div>
+      ${b.pg?`<div class="bp"><i style="width:${Math.min(100,(b.cur||0)/b.pg*100)}%"></i></div>`:''}
+      <div class="bt3"><span>${b.pg?`${b.cur||0} / ${b.pg}쪽`:''}</span><span>${esc(b.start||'')} 시작</span></div>`;
+    c.addEventListener('click',()=>{libEdit=b.id;renderLib();sheet12.querySelector('.sin').scrollTop=0});
+    top.appendChild(c);
   });
-  if(libEdit){body.appendChild(bookForm(libEdit));return}
-  const sr=document.createElement('input');sr.type='text';sr.className='lsearch';sr.placeholder='제목 · 저자 검색';sr.value=libQ;
-  sr.addEventListener('input',()=>{libQ=sr.value;drawList()});body.appendChild(sr);
+  // 분류
+  const cc={전체:done.length};done.forEach(b=>{const k=b.cat||'기타';cc[k]=(cc[k]||0)+1});
+  ['전체'].concat(BK_CAT).forEach(k=>{
+    if(k!=='전체'&&!cc[k])return;
+    const b=document.createElement('button');b.type='button';b.className=libCat===k?'on':'';
+    b.style.flex='0 0 auto';b.textContent=`${k} ${cc[k]||0}`;
+    b.addEventListener('click',()=>{libCat=k;renderLib()});seg.appendChild(b);
+  });
+  const sr=document.createElement('input');sr.type='text';sr.className='lsearch';sr.placeholder='제목 · 저자 · 출판사 검색';sr.value=libQ;
+  body.appendChild(sr);
   const box=document.createElement('div');body.appendChild(box);
   const drawList=()=>{
     box.innerHTML='';
-    let list=libSeg==='all'?books.slice():books.filter(b=>b.st===libSeg);
+    let list=done.filter(b=>libCat==='전체'||(b.cat||'기타')===libCat);
     const q=libQ.trim().toLowerCase();
     if(q)list=list.filter(b=>(b.t+' '+(b.a||'')+' '+(b.pub||'')).toLowerCase().indexOf(q)>-1);
-    list.sort((a,b)=>(b.end||b.start||'').localeCompare(a.end||a.start||''));
-    if(!list.length){box.innerHTML=`<div class="empty">${libSeg==='r'?'읽는 중인 책이 없습니다.<br>아래에서 책을 추가하세요.':'해당하는 책이 없습니다.'}</div>`;return}
+    list.sort((a,b)=>(yOf(b)+(b.end||'')).localeCompare(yOf(a)+(a.end||'')));
+    if(!list.length){box.innerHTML='<div class="empty">해당하는 책이 없습니다.</div>';return}
+    let lastY=null;
     list.forEach(b=>{
-      const c=document.createElement('div');c.className='bk';
-      const pr=b.pg?Math.min(100,(b.cur||0)/b.pg*100):0;
-      c.innerHTML=`<div class="bt1">${esc(b.t)}</div>
-        <div class="bt2">${esc([b.a,b.pub,b.cat].filter(Boolean).join(' · '))}</div>
-        ${b.st==='r'&&b.pg?`<div class="bp"><i style="width:${pr}%"></i></div>`:''}
-        <div class="bt3"><span>${b.st==='r'&&b.pg?`${b.cur||0}/${b.pg}쪽`:(b.pg?b.pg+'쪽':'')}</span>
-          <span>${esc(b.end||b.start||'')}</span>${b.rate?`<span>${'★'.repeat(b.rate)}</span>`:''}
-          <span class="st ${b.st}">${BK_ST[b.st]||''}</span></div>`;
+      const y=yOf(b)||'연도 없음';
+      if(y!==lastY){lastY=y;const n=list.filter(x=>(yOf(x)||'연도 없음')===y).length;
+        const h=document.createElement('div');h.className='grp';h.style.cursor='default';
+        h.innerHTML=`${y}${/^\d+$/.test(y)?'년':''} <span>${n}권</span>`;box.appendChild(h)}
+      const c=document.createElement('div');c.className='bk';c.style.padding='9px 11px';c.style.marginBottom='6px';
+      c.innerHTML=`<div class="bt1" style="font-size:13.5px">${esc(b.t)}</div>
+        <div class="bt3" style="margin-top:3px"><span>${esc([b.a,b.pub].filter(Boolean).join(' · '))}</span>
+          ${b.rate?`<span>${'★'.repeat(b.rate)}</span>`:''}
+          <span class="st" style="color:var(--soft);font-weight:600">${libCat==='전체'?esc(b.cat||'기타')+' · ':''}${esc((b.end||'').slice(5).replace('-','.'))}</span></div>`;
       c.addEventListener('click',()=>{libEdit=b.id;renderLib();sheet12.querySelector('.sin').scrollTop=0});
       box.appendChild(c);
     });
   };
+  sr.addEventListener('input',()=>{libQ=sr.value;drawList()});
   drawList();
-  const rlist=books.filter(b=>b.st==='r');
-  if(libSeg==='r'&&rlist.length>1){
-    const all=document.createElement('button');all.type='button';all.className='copy';all.style.marginTop='4px';
-    all.textContent=`읽는 중 ${rlist.length}권 모두 완독 처리`;
-    all.addEventListener('click',()=>{
-      if(!confirm(`읽는 중인 ${rlist.length}권을 모두 완독으로 옮길까요?\n완독일이 없는 책은 시작일(없으면 오늘)로 기록합니다.`))return;
-      const today=dk(new Date());
-      rlist.forEach(b=>{b.st='d';if(!b.end)b.end=b.start&&/^\d{4}-/.test(b.start)?b.start:today;if(b.pg)b.cur=b.pg;b.u=Date.now()});
-      libSeg='d';persist();renderLib();
-    });
-    body.appendChild(all);
-  }
+  const ad=document.createElement('button');ad.type='button';ad.className='save';ad.textContent='+ 책 등록';
+  ad.addEventListener('click',()=>{libEdit='new';renderLib();sheet12.querySelector('.sin').scrollTop=0});
+  body.appendChild(ad);
   const bar=document.createElement('div');bar.className='tbar';
-  const ad=document.createElement('button');ad.type='button';ad.className='allbtn';ad.style.borderStyle='solid';ad.textContent='+ 책 추가';
-  ad.addEventListener('click',()=>{libEdit='new';renderLib()});
-  const im=document.createElement('button');im.type='button';im.className='allbtn';im.style.borderStyle='solid';im.textContent='시트에서 붙여넣기';
-  im.addEventListener('click',()=>{libEdit='import';renderLib()});
-  const gl=document.createElement('button');gl.type='button';gl.className='allbtn';gl.style.borderStyle='solid';gl.textContent='올해 목표';
+  const gl=document.createElement('button');gl.type='button';gl.className='allbtn';gl.style.borderStyle='solid';gl.textContent='올해 목표 권수';
   gl.addEventListener('click',()=>{const v=prompt('올해 몇 권을 읽을까요?',ST.bookGoal||24);if(v&&+v>0){ST.bookGoal=+v;persist();renderLib()}});
-  bar.appendChild(ad);bar.appendChild(im);bar.appendChild(gl);body.appendChild(bar);
+  const im=document.createElement('button');im.type='button';im.className='allbtn';im.style.borderStyle='solid';im.textContent='표에서 한꺼번에 등록';
+  im.addEventListener('click',()=>{libEdit='import';renderLib()});
+  bar.appendChild(gl);bar.appendChild(im);body.appendChild(bar);
 }
 function bookForm(id){
   if(id==='import')return importForm();
-  const isNew=id==='new',b=isNew?{st:'r',start:dk(new Date())}:ST.books.find(x=>x.id===id);
+  const isNew=id==='new',b=isNew?{st:'d',start:dk(new Date()),end:dk(new Date()),cat:'일반교양'}:ST.books.find(x=>x.id===id);
   const f=document.createElement('div');f.className='rform';
   f.innerHTML=`<div class="fl" style="margin-top:0">제목</div><input type="text" class="b-t" maxlength="80">
     <div class="g2" style="margin-top:8px"><div><div class="fl" style="margin-top:0">저자</div><input type="text" class="b-a"></div>
       <div><div class="fl" style="margin-top:0">출판사</div><input type="text" class="b-pub"></div></div>
     <div class="g3" style="margin-top:8px"><div><div class="fl" style="margin-top:0">전체 쪽</div><input type="number" class="b-pg" inputmode="numeric"></div>
       <div><div class="fl" style="margin-top:0">읽은 쪽</div><input type="number" class="b-cur" inputmode="numeric"></div>
-      <div><div class="fl" style="margin-top:0">분류</div><input type="text" class="b-cat" placeholder="예: 경영"></div></div>
-    <div class="g3" style="margin-top:8px"><div><div class="fl" style="margin-top:0">상태</div><select class="b-st">${Object.keys(BK_ST).map(k=>`<option value="${k}">${BK_ST[k]}</option>`).join('')}</select></div>
+      <div><div class="fl" style="margin-top:0">분류</div><select class="b-cat">${BK_CAT.map(c=>`<option>${c}</option>`).join('')}</select></div></div>
+    <div class="g3" style="margin-top:8px"><div><div class="fl" style="margin-top:0">상태</div><select class="b-st"><option value="d">다 읽음</option><option value="r">읽는 중</option><option value="w">읽을 책</option><option value="x">중단</option></select></div>
       <div><div class="fl" style="margin-top:0">시작일</div><input type="text" class="b-s" placeholder="2026-09-22"></div>
       <div><div class="fl" style="margin-top:0">완독일</div><input type="text" class="b-e" placeholder="비워두면 자동"></div></div>
     <div class="fl">별점</div><div class="stars"></div>
     <div class="fl">한 줄 평 · 남기고 싶은 문장</div><textarea class="b-m" rows="3"></textarea>
-    <div class="rbtn"><button type="button" class="cc">${isNew?'취소':'목록'}</button><button type="button" class="ok2">${isNew?'추가':'저장'}</button></div>
+    <div class="rbtn"><button type="button" class="cc">${isNew?'취소':'목록'}</button><button type="button" class="ok2">${isNew?'등록':'저장'}</button></div>
     ${isNew?'':'<button type="button" class="del2 b-del" style="margin-top:6px">이 책 지우기</button>'}`;
   const q=c=>f.querySelector(c);
   q('.b-t').value=b.t||'';q('.b-a').value=b.a||'';q('.b-pub').value=b.pub||'';q('.b-pg').value=b.pg||'';
-  q('.b-cur').value=b.cur||'';q('.b-cat').value=b.cat||'';q('.b-st').value=b.st||'r';
+  q('.b-cur').value=b.cur||'';q('.b-cat').value=BK_CAT.indexOf(b.cat)>-1?b.cat:'기타';q('.b-st').value=b.st||'r';
   q('.b-s').value=b.start||'';q('.b-e').value=b.end||'';q('.b-m').value=b.memo||'';
   let rate=b.rate||0;const st=q('.stars');
   const drawStars=()=>{st.innerHTML='';[1,2,3,4,5].forEach(n=>{const x=document.createElement('button');x.type='button';x.textContent='★';
@@ -2070,7 +2077,7 @@ function bookForm(id){
     if(o.st==='d'&&!o.end)o.end=dk(new Date());
     if(o.st==='d'&&o.pg)o.cur=o.pg;
     if(isNew)ST.books.push(o);
-    libSeg=o.st;libEdit=null;persist();renderLib();
+    libEdit=null;persist();renderLib();
   });
   if(!isNew)q('.b-del').addEventListener('click',()=>{if(!confirm(`『${b.t}』을(를) 서재에서 지울까요?`))return;
     ST.books=ST.books.filter(x=>x!==b);libEdit=null;persist();renderLib()});
@@ -2145,7 +2152,7 @@ function importForm(){
         if(b.end){o.st='d';o.cur=o.pg||o.cur}o.u=Date.now();up++;return}
       b.id='b'+Date.now().toString(36)+i;b.u=Date.now();ST.books.push(b);n++;
     });
-    persist();libEdit=null;libSeg='d';renderLib();
+    persist();libEdit=null;renderLib();
     setTimeout(()=>alert(`새로 ${n}권 · 기존 ${up}권 갱신`),30);
   });
   setTimeout(()=>ta.focus(),60);
@@ -2398,6 +2405,13 @@ function normalize(d){
   o.weekNote=o.weekNote||{};o.reps=o.reps||{};o.stage=o.stage||1;
   o.todos.forEach(t=>{if(!t.lv)t.lv='일상';if(!t.u)t.u=0});
   o.gone=o.gone||{};o.prayers=o.prayers||{};o.books=o.books||[];o.rdg=o.rdg||{};
+  if(!o.bookSeed&&typeof BOOK_SEED!=='undefined'){
+    const nk=t=>String(t||'').replace(/[\s?.,()\[\]_·:-]/g,'');
+    const seedKeys=new Set(BOOK_SEED.map(b=>nk(b[0])));
+    const keep=o.books.filter(b=>!seedKeys.has(nk(b.t)));
+    const add=BOOK_SEED.map((b,i)=>({id:'s'+i,t:b[0],a:b[1],pub:b[2],pg:b[3],start:b[4],end:b[5],yr:b[6],cat:b[7],st:'d',cur:b[3],rate:0,memo:''}));
+    o.books=add.concat(keep);o.bookSeed=1;o._dirty=true;
+  }
   ['morning','evening','salve'].forEach(k=>{if(!o.prayers[k]&&typeof DEFAULT_PRAYERS!=='undefined'){o.prayers[k]=DEFAULT_PRAYERS[k];o._dirty=true}});
   if(!o.routine||!o.routine.wd)o.routine=defaultRoutine(o.stage||1);
   if(!Array.isArray(o.tpls))o.tpls=defaultTpls();
