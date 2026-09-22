@@ -1586,6 +1586,12 @@ function render(){
         rs.addEventListener('click',ev=>{ev.stopPropagation();clearItem(x.id)});
         row.appendChild(rs);
       }
+      if(x.rec&&x.rec.t==='독서 메모'){
+        const lb=document.createElement('button');lb.type='button';lb.className='pen has';
+        lb.textContent='📚';lb.setAttribute('aria-label','서재 열기');lb.style.fontSize='15px';
+        lb.addEventListener('click',ev=>{ev.stopPropagation();openLib(reading().length?null:'add')});
+        row.appendChild(lb);
+      }
       if(x.pray){
         const pb=document.createElement('button');pb.type='button';pb.className='pen has';
         pb.textContent='✝';pb.setAttribute('aria-label','기도문 보기');
@@ -1913,6 +1919,7 @@ function noteOf(x){
   if(x.rec&&x.rec.t==='독서 메모'){
     const r=reading();
     if(r.length){const b=r[0];return `읽는 중 · ${b.t}${b.pg?` · ${b.cur||0}/${b.pg}쪽`:''}${r.length>1?` 외 ${r.length-1}권`:''}`}
+    return '📚 을 눌러 읽을 책을 넣어주세요';
   }
   return x.note||'';
 }
@@ -1955,7 +1962,7 @@ document.getElementById('libBtn').addEventListener('click',()=>openLib());
 document.getElementById('s12Close').addEventListener('click',()=>{sheet12.classList.remove('open');render()});
 sheet12.addEventListener('click',e=>{if(e.target===sheet12){sheet12.classList.remove('open');render()}});
 function openLib(mode){libEdit=mode==='add'?'new':null;libSeg=reading().length?'r':'d';renderLib();sheet12.classList.add('open');sheet12.querySelector('.sin').scrollTop=0}
-const yOf=b=>(b.end||'').slice(0,4);
+const yOf=b=>{if(b.yr)return b.yr;const m=(b.end||b.start||'').match(/^(\d{4})/);return m?m[1]:''};
 function renderLib(){
   const top=document.getElementById('s12Top'),seg=document.getElementById('s12Seg'),body=document.getElementById('s12Body');
   top.innerHTML='';seg.innerHTML='';body.innerHTML='';
@@ -2046,7 +2053,8 @@ function bookForm(id){
     const o=isNew?{id:'b'+Date.now().toString(36)}:b;
     o.t=t;o.a=q('.b-a').value.trim();o.pub=q('.b-pub').value.trim();o.pg=+q('.b-pg').value||0;
     o.cur=+q('.b-cur').value||0;o.cat=q('.b-cat').value.trim();o.st=q('.b-st').value;
-    o.start=q('.b-s').value.trim();o.end=q('.b-e').value.trim();o.memo=q('.b-m').value.trim();o.rate=rate;o.u=Date.now();
+    const ne=q('.b-e').value.trim();if(ne!==(b.end||''))delete o.yr;
+    o.start=q('.b-s').value.trim();o.end=ne;o.memo=q('.b-m').value.trim();o.rate=rate;o.u=Date.now();
     if(o.st==='d'&&!o.end)o.end=dk(new Date());
     if(o.st==='d'&&o.pg)o.cur=o.pg;
     if(isNew)ST.books.push(o);
@@ -2058,19 +2066,21 @@ function bookForm(id){
   return f;
 }
 /* 시트에서 복사한 표 가져오기 */
-function normDate(v){
+function normDate(v,yr){
   v=String(v||'').trim();if(!v)return '';
-  let m=v.match(/^(\d{2,4})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/);
+  let m=v.match(/^(\d{2,4})\s*[.\-/년]\s*(\d{1,2})\s*[.\-/월]\s*(\d{1,2})/);
   if(m){let y=m[1];if(y.length===2)y='20'+y;return `${y}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`}
   m=v.match(/^(\d{4})(\d{2})(\d{2})$/);if(m)return `${m[1]}-${m[2]}-${m[3]}`;
+  m=v.match(/^(\d{1,2})\s*[월.\-/]\s*(\d{1,2})\s*[일월]?\.?$/);          // 연도 없는 날짜: 02월 16일 · 2/16
+  if(m&&yr)return `${yr}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
   return v;
 }
 function parseBooks(txt){
   const rows=String(txt||'').replace(/\r/g,'').split('\n').map(l=>l.split('\t')).filter(r=>r.some(c=>c.trim()));
   if(!rows.length)return [];
   const H={t:/^(제목|도서명|책\s*제목|서명|책\s*이름|도서)$/,a:/^(저자|지은이|작가|저\s*자)$/,pub:/^(출판사|출판)$/,
-    pg:/^(페이지|쪽수|쪽|페이지수|분량)$/,start:/^(시작일?|시작\s*날짜|읽기\s*시작)$/,end:/^(완료일?|종료일?|완독일?|읽은\s*날|읽은날짜|완독)$/,
-    cat:/^(분류|장르|구분|카테고리)$/,rate:/^(별점|평점|점수)$/,memo:/^(메모|한줄평|한\s*줄\s*평|비고|느낀\s*점)$/};
+    pg:/^(페이지|쪽수|쪽|페이지수|분량)$/,start:/^(시작일?|시작\s*(날짜|일자)|읽기\s*시작|시작한\s*날)$/,end:/^(완료일?|종료일?|완독일?|(완료|종료|완독)\s*(날짜|일자)|읽은\s*날(짜)?|다\s*읽은\s*날|완독)$/,
+    cat:/^(분류|장르|구분|카테고리)$/,yr:/^(연도|년도|해|읽은\s*해)$/,rate:/^(별점|평점|점수)$/,memo:/^(메모|한줄평|한\s*줄\s*평|비고|느낀\s*점)$/};
   let map=null,start=0;
   const head=rows[0].map(c=>c.trim().replace(/\s+/g,' '));
   const hm={};head.forEach((c,i)=>{Object.keys(H).forEach(k=>{if(hm[k]===undefined&&H[k].test(c))hm[k]=i})});
@@ -2081,8 +2091,9 @@ function parseBooks(txt){
     const g=k=>map[k]!==undefined?String(r[map[k]]||'').trim():'';
     const t=g('t');
     if(!t||/^(합계|소계|계|total)$/i.test(t)||/^(합계|소계)$/.test(String(r[0]||'').trim()))return;
-    const end=normDate(g('end')),pg=parseInt(g('pg').replace(/[^\d]/g,''))||0;
-    out.push({t,a:g('a'),pub:g('pub'),pg,cat:g('cat'),start:normDate(g('start')),end,
+    const yr=(g('yr').match(/\d{4}/)||[''])[0];
+    const end=normDate(g('end'),yr),pg=parseInt(g('pg').replace(/[^\d]/g,''))||0;
+    out.push({t,a:g('a'),pub:g('pub'),pg,cat:g('cat'),start:normDate(g('start'),yr),end,yr,
       rate:Math.min(5,parseInt(g('rate'))||0),memo:g('memo'),st:end?'d':'r',cur:end?pg:0});
   });
   return out;
