@@ -236,6 +236,8 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
 .chips button{border:1px solid var(--rule);background:#FBFBF9;border-radius:999px;
   font:inherit;font-size:12.5px;padding:8px 12px;cursor:pointer;color:var(--ink)}
 .chips button.on{border-color:var(--ink);background:var(--ink);color:#fff;font-weight:600}
+.pframe{width:100%;height:62vh;border:1px solid var(--rule);border-radius:14px;background:#fff;display:block;margin-top:4px}
+.pnote{font-size:11px;color:var(--soft);line-height:1.6;margin:8px 2px 0}
 .pray{font-size:14.5px;line-height:1.95;white-space:pre-line;color:var(--ink);
   padding:4px 2px 2px;word-break:keep-all}
 .pray h4{font-size:12px;color:var(--faith);margin:18px 0 5px;font-weight:700}
@@ -474,7 +476,7 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
     <p class="ssub" id="s9Sub"></p>
     <div class="seg" id="s9Seg"></div>
     <div id="s9Body"></div>
-    <button class="copy" id="s9Link">굿뉴스 기도서에서 더 보기</button>
+    <button class="copy" id="s9Link">새 창으로 크게 보기</button>
     <button class="save" id="s9Done">기도 마치고 체크</button>
   </div>
 </div>
@@ -1851,6 +1853,17 @@ const MYSTERY=[
    '마리아께서 하늘에 불려 올림을 받으심을 묵상합시다','마리아께서 하늘의 모후가 되심을 묵상합시다']}
 ];
 const TODAY_MYS=[3,0,2,3,1,2,0]; // 일~토
+const PRAY_URL={
+  '아침기도':'https://app.catholic.or.kr/web/prayer/?flag=0&ingId=18',
+  '저녁기도':'https://app.catholic.or.kr/web/prayer/?flag=0&ingId=19',
+  '묵주기도 5단':'https://app.catholic.or.kr/web/prayer/?flag=5&ingId=70'
+};
+function prayUrl(item){
+  if(PRAY_URL[item.n])return PRAY_URL[item.n];
+  if(/묵주/.test(item.n))return PRAY_URL['묵주기도 5단'];
+  if(/저녁/.test(item.n))return PRAY_URL['저녁기도'];
+  return PRAY_URL['아침기도'];
+}
 const PRAYS={
  '아침기도':{sub:'하루를 봉헌하며',steps:['성호경','주님의 기도','성모송','영광송'],
    lead:'성호를 긋고 시작합니다. 마지막에 오늘 하루를 하느님께 맡겨 드리는 지향을 마음으로 덧붙이세요.'},
@@ -1863,10 +1876,7 @@ let prayItem=null, praySeg=0;
 document.getElementById('s9Close').addEventListener('click',()=>sheet9.classList.remove('open'));
 sheet9.addEventListener('click',e=>{if(e.target===sheet9)sheet9.classList.remove('open')});
 document.getElementById('s9Link').addEventListener('click',()=>{
-  window.open('https://maria.catholic.or.kr/mi_pr/prayer/prayer.asp','_blank','noopener');
-});
-document.getElementById('s9Done').addEventListener('click',()=>{
-  if(prayItem)check(prayItem.id);persist();sheet9.classList.remove('open');render();
+  if(prayItem)window.open(prayUrl(prayItem),'_blank','noopener');
 });
 function openPray(item){
   prayItem=item;praySeg=item.n==='묵주기도 5단'?TODAY_MYS[cur.getDay()]:0;
@@ -1875,13 +1885,14 @@ function openPray(item){
   document.querySelector('#sheet9 .sin').scrollTop=0;
 }
 function renderPray(){
-  const cfg=PRAYS[prayItem.n],seg=document.getElementById('s9Seg'),body=document.getElementById('s9Body');
+  const seg=document.getElementById('s9Seg'),body=document.getElementById('s9Body');
   seg.innerHTML='';body.innerHTML='';
   const on=doneOf(dk(cur)).indexOf(prayItem.id)>-1;
   document.getElementById('s9Done').textContent=on?'닫기':'기도 마치고 체크';
-  if(cfg.rosary){
-    document.getElementById('s9Sub').textContent=
-      `${DAYS[cur.getDay()]}요일 · ${MYSTERY[TODAY_MYS[cur.getDay()]].n}`;
+  const rosary=/묵주/.test(prayItem.n);
+  if(rosary){
+    const mi=TODAY_MYS[cur.getDay()];
+    document.getElementById('s9Sub').textContent=`${DAYS[cur.getDay()]}요일 · 오늘은 ${MYSTERY[mi].n}`;
     MYSTERY.forEach((m,i)=>{
       const b=document.createElement('button');b.type='button';
       b.className=praySeg===i?'on':'';b.textContent=m.n.slice(0,2);
@@ -1892,22 +1903,19 @@ function renderPray(){
     const box=document.createElement('div');box.className='mys on';
     box.innerHTML=`<b>${m.n}<span>${m.d}</span></b><ol>${m.l.map(x=>`<li>${x}</li>`).join('')}</ol>`;
     body.appendChild(box);
-    const guide=document.createElement('div');guide.className='pray';
-    guide.innerHTML=`<h4>순서</h4><p class="lead">성호경 → 사도신경 → 주님의 기도 → 성모송 3번 → 영광송<br>
-      각 단마다 : 신비 묵상 → 주님의 기도 1번 → 성모송 10번 → 영광송 → 구원을 비는 기도<br>
-      다섯 단을 마친 뒤 : 성모송가(살베 레지나) 또는 마침 기도</p>`;
-    body.appendChild(guide);
-    BASIC.filter(p=>['주님의 기도','성모송','영광송','구원을 비는 기도'].indexOf(p.t)>-1).forEach(p=>{
-      const d=document.createElement('div');d.className='pray';
-      d.innerHTML=`<h4>${p.t}</h4>${esc(p.b)}`;body.appendChild(d);
-    });
+    const g=document.createElement('p');g.className='pnote';
+    g.textContent='아래 기도서에서 사도신경 · 각 신비 묵상 · 성모찬송까지 이어서 보실 수 있습니다.';
+    body.appendChild(g);
   }else{
-    document.getElementById('s9Sub').textContent=cfg.sub;
-    const d=document.createElement('div');d.className='pray';
-    d.innerHTML=`<p class="lead">${cfg.lead}</p>`+
-      cfg.steps.map(n=>{const p=BASIC.find(x=>x.t===n);return `<h4>${p.t}</h4>${esc(p.b)}`}).join('');
-    body.appendChild(d);
+    document.getElementById('s9Sub').textContent=/저녁/.test(prayItem.n)?'하루를 되돌아보며 · 가톨릭 기도서':'하루를 봉헌하며 · 가톨릭 기도서';
   }
+  const fr=document.createElement('iframe');fr.className='pframe';
+  fr.src=prayUrl(prayItem);fr.title=prayItem.n+' 기도문';fr.loading='lazy';
+  fr.setAttribute('referrerpolicy','no-referrer');
+  body.appendChild(fr);
+  const n=document.createElement('p');n.className='pnote';
+  n.textContent='굿뉴스 공식 기도서입니다. 화면이 비어 보이면 아래 \'새 창으로 크게 보기\'를 눌러 주세요.';
+  body.appendChild(n);
 }
 
 /* ---------- 백업 · 이전 ---------- */
