@@ -2412,6 +2412,11 @@ function normalize(d){
     const add=BOOK_SEED.map((b,i)=>({id:'s'+i,t:b[0],a:b[1],pub:b[2],pg:b[3],start:b[4],end:b[5],yr:b[6],cat:b[7],st:'d',cur:b[3],rate:0,memo:''}));
     o.books=add.concat(keep);o.bookSeed=1;o._dirty=true;
   }
+  if(!o.allRead){                                   // 서재의 모든 책을 완독으로 (한 번만)
+    const td=new Date(),today=td.getFullYear()+'-'+String(td.getMonth()+1).padStart(2,'0')+'-'+String(td.getDate()).padStart(2,'0');
+    o.books.forEach(b=>{if(b.st!=='d'){b.st='d';if(!b.end)b.end=/^\d{4}-/.test(b.start||'')?b.start:today;if(b.pg)b.cur=b.pg;b.u=Date.now()}});
+    o.allRead=1;o._dirty=true;
+  }
   ['morning','evening','salve'].forEach(k=>{if(!o.prayers[k]&&typeof DEFAULT_PRAYERS!=='undefined'){o.prayers[k]=DEFAULT_PRAYERS[k];o._dirty=true}});
   if(!o.routine||!o.routine.wd)o.routine=defaultRoutine(o.stage||1);
   if(!Array.isArray(o.tpls))o.tpls=defaultTpls();
