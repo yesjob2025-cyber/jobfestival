@@ -654,6 +654,7 @@ function defaultRoutine(stage){
 }
 const RKEY={wd:'평일',sat:'토요일',sun:'일요일'};
 const dayType=d=>d.getDay()===6?'sat':(d.getDay()===0?'sun':'wd');
+const TPL_VER=2;
 function defaultTpls(){
   const mk=(name,cat,phases)=>{
     const items=[];
@@ -1701,7 +1702,16 @@ function renderTpl(){
         items:[{t:'',lv:'일상',ph:'준비'},{t:'',lv:'일상',ph:'진행'},{t:'',lv:'일상',ph:'마무리'}]};
       ST.tpls.push(tp);persist();tplView='edit';tplCur=tp;renderTpl();
     });
-    row.appendChild(nw);body.appendChild(row);
+    row.appendChild(nw);
+    const rs=document.createElement('button');rs.type='button';rs.className='allbtn';rs.style.borderStyle='solid';
+    rs.textContent='기본 유형 다시 불러오기';
+    rs.addEventListener('click',()=>{
+      if(!confirm('기본 여섯 가지 유형(온라인 · 일반 교육 · 행사 준비 · 사업준비 · 개발 · 영업)을 처음 상태로 되돌릴까요? 직접 만든 유형은 그대로 남습니다.'))return;
+      const names=defaultTpls().map(t=>t.name);
+      ST.tpls=defaultTpls().concat(ST.tpls.filter(t=>names.indexOf(t.name)<0&&['제안서 작성','행사 운영 준비','결과보고서','주간 정기 업무'].indexOf(t.name)<0));
+      ST.tplVer=TPL_VER;persist();renderTpl();
+    });
+    row.appendChild(rs);body.appendChild(row);
     return;
   }
   const tp=tplCur,editing=tplView==='edit';
@@ -1917,7 +1927,7 @@ document.getElementById('pwSave').addEventListener('click',async()=>{
 document.getElementById('s7Reset').addEventListener('click',()=>{
   if(!confirm('정말 모든 기록을 지우고 처음부터 시작할까요?\n\n지우기 전에 위쪽 \'복사하기\'로 백업해 두시길 권합니다.'))return;
   if(!confirm('한 번 더 확인합니다. 되돌릴 수 없습니다. 초기화할까요?'))return;
-  ST=normalize({});ST.routine=defaultRoutine(1);ST.tpls=defaultTpls();
+  ST=normalize({});ST.routine=defaultRoutine(1);ST.tpls=defaultTpls();ST.tplVer=TPL_VER;
   persist();sheet7.classList.remove('open');
   cur=new Date();cur.setHours(0,0,0,0);tab=autoTab();render();
   setTimeout(()=>alert('초기화했습니다. 위쪽 \'루틴 편집\'에서 루틴을, 주간 업무 보드에서 업무를 새로 설정하세요.'),50);
@@ -2014,6 +2024,12 @@ function normalize(d){
   o.gone=o.gone||{};
   if(!o.routine||!o.routine.wd)o.routine=defaultRoutine(o.stage||1);
   if(!Array.isArray(o.tpls))o.tpls=defaultTpls();
+  if((o.tplVer||1)<TPL_VER){
+    const OLD=['제안서 작성','행사 운영 준비','결과보고서','주간 정기 업무'];
+    const mine=o.tpls.filter(t=>OLD.indexOf(t.name)<0);
+    const fresh=defaultTpls().filter(t=>!mine.some(m=>m.name===t.name));
+    o.tpls=fresh.concat(mine);o.tplVer=TPL_VER;o._dirty=true;
+  }
   return o;
 }
 function pickNewer(a,b){
@@ -2083,7 +2099,7 @@ async function startCloud(){
   catch(e){setSync('err','연결 실패 · 이 기기 기록으로 시작합니다')}
   const local=await Store.load();
   ST=normalize(pickNewer(local,remote));
-  migrate();
+  migrate();delete ST._dirty;
   await Store.save(ST);
   render();
   try{await cloudPut();setSync('ok','동기화됨 · '+session.user.email.split('@')[0])}
@@ -2097,7 +2113,7 @@ async function startCloud(){
     sb.auth.onAuthStateChange((ev)=>{if(ev==='SIGNED_IN'&&!cloud)setTimeout(()=>{if(!cloud)startCloud()},0)});
     await startCloud();
   }else{
-    ST=normalize(await Store.load());migrate();render();
+    ST=normalize(await Store.load());migrate();if(ST._dirty){delete ST._dirty;persist()}render();
   }
 })();
 </script>
