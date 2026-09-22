@@ -294,6 +294,27 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
 .tph span{font-size:10.5px;color:var(--soft)}
 .tph .rx{border:0;background:none;color:#C0424F;font-size:14px;cursor:pointer;padding:4px}
 .tli.in{padding-left:14px}
+.ity.정책·보도자료{color:#9B2C3B;background:#FBE4E8}
+.ilens{font-size:9.5px;font-weight:600;color:var(--soft);border:1px solid var(--rule);padding:1px 6px;border-radius:999px}
+.ibtn{display:flex;gap:6px;margin-top:9px}
+.ibtn button{flex:1;padding:8px;border-radius:9px;font:inherit;font-size:12px;cursor:pointer;border:1px solid var(--rule);background:#fff;color:var(--ink)}
+.ibtn .keep{background:#FFF6E0;border-color:#F2D48A;color:#8A6D1F;font-weight:700}
+.lensrow{display:flex;gap:5px;flex-wrap:wrap;margin:-2px 0 10px}
+.lensrow button{border:1px solid var(--rule);background:#fff;border-radius:999px;font:inherit;font-size:11px;padding:5px 10px;cursor:pointer;color:var(--soft)}
+.lensrow button.on{border-color:var(--ink);color:var(--ink);font-weight:700}
+.ic{border:1px solid var(--rule);border-radius:13px;padding:10px 12px;margin-bottom:7px;background:#fff}
+.ic .ih{display:flex;align-items:center;gap:6px}
+.ic .ity{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:999px;flex:0 0 auto}
+.ity.입찰{color:#8A5B10;background:#FBEFD9}.ity.뉴스·키워드{color:#1F5FA8;background:#E4EEFA}
+.ity.전문지·신문{color:#5B3FB8;background:#EEE9FB}.ity.사이트·자료{color:#1F7A5A;background:#E4F3EC}.ity.기타{color:#5A6474;background:#EDEFF2}
+.ic .isrc{font-size:10px;color:var(--soft)}
+.ic .istar{margin-left:auto;border:0;background:none;font-size:17px;cursor:pointer;color:#D6D9DE;padding:0 2px;line-height:1}
+.ic .istar.on{color:#E8A531}
+.ic .ied{border:0;background:none;color:var(--soft);font-size:13px;cursor:pointer;padding:0 2px}
+.ic .it1{display:block;font-size:13.5px;font-weight:700;line-height:1.45;margin-top:6px;color:var(--ink);text-decoration:none;word-break:break-word}
+.ic a.it1::after{content:" ↗";color:var(--grow);font-weight:600;font-size:11px}
+.ic .it2{font-size:12px;color:var(--soft);line-height:1.6;margin-top:3px;white-space:pre-wrap;word-break:break-word}
+.ic .it3{font-size:10px;color:var(--grow);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lsum{display:flex;gap:8px;margin:2px 0 12px}
 .lsum>div{flex:1;border:1px solid var(--rule);border-radius:14px;padding:11px 12px;background:#FBFBF9}
 .lsum .k{font-size:10.5px;color:var(--soft);font-weight:600}
@@ -463,7 +484,7 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
   <div class="btnrow">
     <button class="allbtn" id="statBtn">영역별 현황</button>
     <button class="allbtn" id="allBtn">오늘 기록</button>
-    <button class="allbtn" id="newsBtn">뉴스 서랍</button>
+    <button class="allbtn" id="newsBtn">정보함</button>
   </div>
   <div class="btnrow">
     <button class="allbtn" id="boardBtn">주간 업무 보드</button>
@@ -541,6 +562,14 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
     <div class="seg" id="s9Seg"></div>
     <div id="s9Body"></div>
     <button class="save" id="s9Done">기도 마치고 체크</button>
+  </div>
+</div>
+<div class="sheet" id="sheet13">
+  <div class="sin">
+    <div class="shead"><h2>정보함</h2><button class="x" id="s13Close" aria-label="닫기">×</button></div>
+    <p class="ssub" id="s13Sub"></p>
+    <div class="seg" id="s13Seg" style="flex-wrap:wrap"></div>
+    <div id="s13Body"></div>
   </div>
 </div>
 <div class="sheet" id="sheet12">
@@ -821,7 +850,16 @@ function mergeTodos(remote){
   const cut=Date.now()-1000*60*60*24*60;
   Object.keys(gone).forEach(k=>{if(gone[k]<cut)delete gone[k]});
   ST.gone=gone;
-  return JSON.stringify(ST.todos)!==before;
+  // 자동 수집함 병합 — 서버에만 있는 새 정보를 가져오고, 이미 보관·버린 건 빼기
+  const done=Object.assign({},remote.inboxDone||{});
+  Object.keys(ST.inboxDone||{}).forEach(k=>{done[k]=Math.max(done[k]||0,ST.inboxDone[k])});
+  const ib={},ord=[];
+  (remote.inbox||[]).concat(ST.inbox||[]).forEach(x=>{if(x&&x.id&&!ib[x.id]){ib[x.id]=x;ord.push(x.id)}});
+  const ibBefore=(ST.inbox||[]).length;
+  ST.inbox=ord.map(id=>ib[id]).filter(x=>!done[x.id]).sort((a,b)=>(b.at||0)-(a.at||0)).slice(0,200);
+  ST.inboxDone=done;
+  if(remote.collectedAt)ST.collectedAt=Math.max(ST.collectedAt||0,remote.collectedAt);
+  return JSON.stringify(ST.todos)!==before||ST.inbox.length!==ibBefore;
 }
 async function cloudPut(){
   try{const row=await cloudGet();if(row&&row.data)mergeTodos(row.data)}catch(e){}
@@ -1404,21 +1442,6 @@ document.getElementById('allBtn').addEventListener('click',()=>{
   if(!any)body.innerHTML='<div class="empty">아직 기록이 없습니다.<br>항목 오른쪽 ✎ 를 눌러 남겨보세요.</div>';
   sheet2.classList.add('open');
 });
-document.getElementById('newsBtn').addEventListener('click',()=>{
-  document.getElementById('s2Title').textContent='뉴스 서랍';
-  const body=document.getElementById('s2Body');body.innerHTML='';
-  const keys=Object.keys(ST.rec).sort().reverse();let n=0;copyText='뉴스 서랍\n\n';
-  keys.forEach(day=>{Object.keys(ST.rec[day]).forEach(id=>{
-    if(id.indexOf('키워드 뉴스 정리')<0)return;
-    const v=ST.rec[day][id];if(!isList(v))return;
-    let inner='';v.forEach(e=>{inner+=lkHTML(e);n++});
-    body.innerHTML+=`<div class="rc"><div class="rh"><span style="width:7px;height:7px;border-radius:50%;background:${A['업무']};display:inline-block"></span>${day.slice(5).replace('-','월 ')}일<span class="rd">${v.length}건</span></div>${inner}</div>`;
-    copyText+=`[${day}]\n`;v.forEach(e=>{copyText+=`- ${e.t||''}\n`;if(e.s)copyText+=`  ${e.s}\n`;if(e.u)copyText+=`  ${e.u}\n`});copyText+='\n';
-  })});
-  document.getElementById('s2Sub').textContent=n?`모인 뉴스 ${n}건 · 최근 것부터`:'';
-  if(!n)body.innerHTML='<div class="empty">아직 모인 뉴스가 없습니다.<br>오전에 한 건만 남겨보세요.</div>';
-  sheet2.classList.add('open');
-});
 document.getElementById('s2Copy').addEventListener('click',()=>{
   const b=document.getElementById('s2Copy');
   try{navigator.clipboard.writeText(copyText);b.textContent='복사했습니다 ✓';setTimeout(()=>b.textContent='전체 복사',1500)}catch(e){b.textContent='복사 실패'}
@@ -1913,6 +1936,199 @@ function renderTpl(){
   body.appendChild(go);
 }
 
+
+/* ---------- 정보함 ---------- */
+const INFO_TY=['입찰','뉴스·키워드','정책·보도자료','전문지·신문','사이트·자료','기타'];
+const LENS=['프로그램 사례','이슈·트렌드','통계'];
+const TGTS=['청년·대학','중장년·신중년','외국인','예비창업자'];
+const sheet13=document.getElementById('sheet13');
+let infoCat=null,infoQ='',infoEdit=null,infoLens='전체';
+document.getElementById('newsBtn').addEventListener('click',()=>{infoEdit=null;infoCat=null;renderInfo();sheet13.classList.add('open');sheet13.querySelector('.sin').scrollTop=0});
+document.getElementById('s13Close').addEventListener('click',()=>{sheet13.classList.remove('open');render()});
+sheet13.addEventListener('click',e=>{if(e.target===sheet13){sheet13.classList.remove('open');render()}});
+function recTypeMap(){
+  const m={};
+  Object.values(ST.routine||{}).forEach(day=>Object.values(day||{}).forEach(list=>(list||[]).forEach(x=>{
+    if(x.rec)m[x.k||x.n]=x.rec.t;
+  })));
+  return m;
+}
+function typeOf(key,recT){
+  const t=recT||'';
+  if(/입찰|공고/.test(t)||/입찰/.test(key))return '입찰';
+  if(/뉴스|키워드/.test(t)||/뉴스|키워드/.test(key))return '뉴스·키워드';
+  if(/신문|읽은 내용|전문지/.test(t)||/신문|전문지/.test(key))return '전문지·신문';
+  return null;
+}
+function collectInfo(){
+  const out=[],rm=recTypeMap();
+  Object.keys(ST.rec||{}).forEach(day=>{
+    Object.keys(ST.rec[day]||{}).forEach(id=>{
+      const key=id.split('-').slice(2).join('-'),ty=typeOf(key,rm[key]);if(!ty)return;
+      const v=ST.rec[day][id];
+      if(isList(v))v.forEach((e,i)=>{if(e.t||e.s||e.u)out.push({src:'rec',day,id,idx:i,type:ty,t:e.t||'',s:e.s||'',u:e.u||'',star:!!e.star})});
+      else if(typeof v==='string'&&v.trim()){
+        const ls=v.trim().split('\n'),url=(v.match(/https?:\/\/\S+/)||[''])[0];
+        out.push({src:'txt',day,id,type:ty,t:ls[0].replace(url,'').trim()||'(메모)',s:ls.slice(1).join('\n').replace(url,'').trim(),u:url,
+          star:!!((ST.infoStar||{})[day+'|'+id])});
+      }
+    });
+  });
+  (ST.info||[]).forEach(x=>out.push({src:'info',ref:x,day:x.d,type:x.type||'기타',t:x.t||'',s:x.s||'',u:x.u||'',star:!!x.star,lens:x.lens||'',tg:x.tg||'',from:x.src||''}));
+  out.sort((a,b)=>String(b.day).localeCompare(String(a.day)));
+  return out;
+}
+function setStar(it,on){
+  if(it.src==='rec')ST.rec[it.day][it.id][it.idx].star=on;
+  else if(it.src==='txt'){ST.infoStar=ST.infoStar||{};if(on)ST.infoStar[it.day+'|'+it.id]=1;else delete ST.infoStar[it.day+'|'+it.id]}
+  else it.ref.star=on;
+  persist();
+}
+function renderInfo(){
+  const seg=document.getElementById('s13Seg'),body=document.getElementById('s13Body');
+  seg.innerHTML='';body.innerHTML='';
+  if(infoEdit){seg.style.display='none';document.getElementById('s13Sub').textContent='';body.appendChild(infoForm(infoEdit));return}
+  seg.style.display='flex';
+  const all=collectInfo(),inbox=ST.inbox||[];
+  if(infoCat===null)infoCat=inbox.length?'새로':'전체';
+  const ca=ST.collectedAt?new Date(ST.collectedAt):null;
+  document.getElementById('s13Sub').textContent=`보관 ${all.length}건 · 새로 들어온 것 ${inbox.length}건`+(ca?` · 마지막 자동 수집 ${ca.getMonth()+1}/${ca.getDate()} ${String(ca.getHours()).padStart(2,'0')}:${String(ca.getMinutes()).padStart(2,'0')}`:'');
+  const cnt={새로:inbox.length,전체:all.length,'⭐':all.filter(x=>x.star).length};all.forEach(x=>cnt[x.type]=(cnt[x.type]||0)+1);
+  ['새로','전체','⭐'].concat(INFO_TY).forEach(k=>{
+    if(!['새로','전체','⭐'].includes(k)&&!cnt[k])return;
+    const b=document.createElement('button');b.type='button';b.className=infoCat===k?'on':'';b.style.flex='0 0 auto';
+    b.textContent=`${k} ${cnt[k]||0}`;b.addEventListener('click',()=>{infoCat=k;renderInfo()});seg.appendChild(b);
+  });
+  // 렌즈 필터
+  const lr=document.createElement('div');lr.className='lensrow';
+  ['전체'].concat(LENS).forEach(l=>{const b=document.createElement('button');b.type='button';b.className=infoLens===l?'on':'';
+    b.textContent=l==='전체'?'렌즈 전체':l;b.addEventListener('click',()=>{infoLens=l;renderInfo()});lr.appendChild(b)});
+  body.appendChild(lr);
+  const sr=document.createElement('input');sr.type='text';sr.className='lsearch';sr.placeholder='제목 · 요약 · 매체 검색';sr.value=infoQ;
+  body.appendChild(sr);
+  if(infoCat==='새로'){renderInbox(body,sr);return}
+  const ad=document.createElement('button');ad.type='button';ad.className='save';ad.style.margin='0 0 12px';ad.textContent='+ 정보 추가';
+  ad.addEventListener('click',()=>{infoEdit={src:'new',type:infoCat!=='전체'&&infoCat!=='⭐'?infoCat:'뉴스·키워드'};renderInfo()});
+  body.appendChild(ad);
+  const box=document.createElement('div');body.appendChild(box);
+  let shown=[];
+  const draw=()=>{
+    box.innerHTML='';
+    shown=all.filter(x=>infoCat==='전체'||(infoCat==='⭐'?x.star:x.type===infoCat));
+    if(infoLens!=='전체')shown=shown.filter(x=>x.lens===infoLens);
+    const q=infoQ.trim().toLowerCase();
+    if(q)shown=shown.filter(x=>(x.t+' '+x.s+' '+x.u).toLowerCase().indexOf(q)>-1);
+    if(!shown.length){box.innerHTML=`<div class="empty">${all.length?'해당하는 정보가 없습니다.':'아직 모인 정보가 없습니다.<br>오전 루틴의 키워드 뉴스 · 입찰 정보에 기록하거나<br>위의 \'+ 정보 추가\'로 바로 넣어보세요.'}</div>`;return}
+    let last=null;
+    shown.forEach(it=>{
+      if(it.day!==last){last=it.day;const h=document.createElement('div');h.className='grp';h.style.cursor='default';
+        const dd=new Date(it.day);h.innerHTML=`${isNaN(dd)?esc(it.day):`${dd.getMonth()+1}월 ${dd.getDate()}일 (${DAYS[dd.getDay()]})`} <span>${shown.filter(x=>x.day===it.day).length}건</span>`;box.appendChild(h)}
+      const c=document.createElement('div');c.className='ic';
+      const u=safeUrl(it.u);
+      c.innerHTML=`<div class="ih"><span class="ity ${it.type}">${it.type}</span>${it.lens?`<span class="ilens">${esc(it.lens)}</span>`:''}${it.tg?`<span class="ilens">${esc(it.tg)}</span>`:''}<span class="isrc">${it.src==='info'?(it.from?esc(it.from):'직접 추가'):'루틴 기록'}</span>
+          <button type="button" class="ied" aria-label="고치기">✎</button><button type="button" class="istar${it.star?' on':''}" aria-label="중요">★</button></div>
+        ${u?`<a class="it1" href="${esc(u)}" target="_blank" rel="noopener">${esc(it.t||'(제목 없음)')}</a>`:`<span class="it1">${esc(it.t||'(제목 없음)')}</span>`}
+        ${it.s?`<div class="it2">${esc(it.s)}</div>`:''}${u?`<div class="it3">${esc(host(u))}</div>`:''}`;
+      c.querySelector('.istar').addEventListener('click',ev=>{it.star=!it.star;setStar(it,it.star);
+        ev.currentTarget.classList.toggle('on',it.star);if(infoCat==='⭐')draw()});
+      c.querySelector('.ied').addEventListener('click',()=>{infoEdit=it;renderInfo();sheet13.querySelector('.sin').scrollTop=0});
+      box.appendChild(c);
+    });
+  };
+  sr.addEventListener('input',()=>{infoQ=sr.value;draw()});
+  draw();
+  const cp=document.createElement('button');cp.type='button';cp.className='copy';cp.textContent='보이는 목록 복사';
+  cp.addEventListener('click',()=>{
+    const t=shown.map(x=>`[${x.day}] (${x.type}) ${x.t}${x.s?'\n  '+x.s.replace(/\n/g,'\n  '):''}${x.u?'\n  '+x.u:''}`).join('\n\n');
+    try{navigator.clipboard.writeText(t);cp.textContent='복사했습니다 ✓';setTimeout(()=>cp.textContent='보이는 목록 복사',1500)}catch(e){}
+  });
+  body.appendChild(cp);
+}
+function renderInbox(body,sr){
+  const box=document.createElement('div');body.appendChild(box);
+  const act=(x,keep)=>{
+    ST.inboxDone=ST.inboxDone||{};ST.inboxDone[x.id]=Date.now();
+    ST.inbox=(ST.inbox||[]).filter(y=>y.id!==x.id);
+    if(keep){ST.info=ST.info||[];ST.info.push({id:'i'+Date.now().toString(36),type:x.type||'뉴스·키워드',t:x.t,s:x.s||'',u:x.u||'',
+      star:true,lens:x.lens||'',tg:x.tg||'',src:x.src||'',d:x.d||dk(new Date())})}
+    persist();
+  };
+  const draw=()=>{
+    box.innerHTML='';
+    let list=(ST.inbox||[]).slice();
+    if(infoLens!=='전체')list=list.filter(x=>x.lens===infoLens);
+    const q=infoQ.trim().toLowerCase();
+    if(q)list=list.filter(x=>(x.t+' '+(x.s||'')+' '+(x.src||'')+' '+(x.q||'')).toLowerCase().indexOf(q)>-1);
+    if(!list.length){box.innerHTML=`<div class="empty">${(ST.inbox||[]).length?'해당하는 정보가 없습니다.':'새로 들어온 정보가 없습니다.<br>매일 아침 자동으로 채워집니다.'}</div>`;return}
+    const hint=document.createElement('p');hint.className='pnote';hint.style.margin='0 0 10px';
+    hint.textContent='쓸 만한 건 ⭐ 보관, 아닌 건 버리기. 손대지 않은 건 2주 뒤 자동으로 정리됩니다.';box.appendChild(hint);
+    let last=null;
+    list.forEach(x=>{
+      if(x.d!==last){last=x.d;const dd=new Date(x.d),h=document.createElement('div');h.className='grp';h.style.cursor='default';
+        h.innerHTML=`${isNaN(dd)?esc(x.d||''):`${dd.getMonth()+1}월 ${dd.getDate()}일 (${DAYS[dd.getDay()]})`} <span>${list.filter(y=>y.d===x.d).length}건</span>`;box.appendChild(h)}
+      const c=document.createElement('div');c.className='ic';const u=safeUrl(x.u);
+      c.innerHTML=`<div class="ih"><span class="ity ${x.type||'뉴스·키워드'}">${esc(x.type||'뉴스·키워드')}</span>${x.lens?`<span class="ilens">${esc(x.lens)}</span>`:''}${x.tg?`<span class="ilens">${esc(x.tg)}</span>`:''}<span class="isrc" style="margin-left:auto">${esc(x.src||'')}</span></div>
+        ${u?`<a class="it1" href="${esc(u)}" target="_blank" rel="noopener">${esc(x.t)}</a>`:`<span class="it1">${esc(x.t)}</span>`}
+        ${x.s?`<div class="it2">${esc(x.s)}</div>`:''}${x.q?`<div class="it3" style="color:var(--soft)">검색어 · ${esc(x.q)}</div>`:''}
+        <div class="ibtn"><button type="button" class="drop">버리기</button><button type="button" class="keep">⭐ 보관</button></div>`;
+      c.querySelector('.keep').addEventListener('click',()=>{act(x,true);c.remove();renderInfoCounts()});
+      c.querySelector('.drop').addEventListener('click',()=>{act(x,false);c.remove();renderInfoCounts()});
+      box.appendChild(c);
+    });
+    const all=document.createElement('button');all.type='button';all.className='copy';all.textContent='보이는 것 모두 버리기';
+    all.addEventListener('click',()=>{if(!confirm(`보이는 ${list.length}건을 모두 버릴까요? (⭐ 보관한 건 남습니다)`))return;
+      list.forEach(x=>act(x,false));renderInfo()});
+    box.appendChild(all);
+  };
+  sr.addEventListener('input',()=>{infoQ=sr.value;draw()});
+  draw();
+}
+function renderInfoCounts(){
+  const seg=document.getElementById('s13Seg'),b=seg&&seg.querySelector('button');
+  if(b&&b.textContent.startsWith('새로'))b.textContent='새로 '+(ST.inbox||[]).length;
+  const all=collectInfo();
+  document.getElementById('s13Sub').textContent=`보관 ${all.length}건 · 새로 들어온 것 ${(ST.inbox||[]).length}건`;
+}
+function infoForm(it){
+  const isNew=it.src==='new';
+  const f=document.createElement('div');f.className='rform';
+  f.innerHTML=`<div class="fl" style="margin-top:0">분류</div>
+    <select class="i-ty" ${it.src==='rec'||it.src==='txt'?'disabled':''}>${INFO_TY.map(t=>`<option>${t}</option>`).join('')}</select>
+    <div class="g2" style="margin-top:8px"><div><div class="fl" style="margin-top:0">렌즈</div><select class="i-l"><option value="">-</option>${LENS.map(l=>`<option>${l}</option>`).join('')}</select></div>
+      <div><div class="fl" style="margin-top:0">대상</div><select class="i-g"><option value="">-</option>${TGTS.map(l=>`<option>${l}</option>`).join('')}</select></div></div>
+    <div class="fl">제목 · 키워드</div><input type="text" class="i-t" maxlength="120">
+    <div class="fl">요약 · 메모</div><textarea class="i-s" rows="4"></textarea>
+    <div class="fl">링크</div><input type="url" class="i-u" placeholder="https://">
+    ${isNew?`<div class="fl">날짜</div><input type="text" class="i-d">`:''}
+    <label class="ck" style="display:flex;align-items:center;gap:7px;font-size:12.5px;margin-top:11px"><input type="checkbox" class="i-st" style="width:17px;height:17px"> ⭐ 중요 표시</label>
+    <div class="rbtn"><button type="button" class="cc">취소</button><button type="button" class="ok2">${isNew?'추가':'저장'}</button></div>
+    ${isNew?'':'<button type="button" class="del2 i-del" style="margin-top:6px">이 정보 지우기</button>'}`;
+  const q=c=>f.querySelector(c);
+  if(it.src==='rec'||it.src==='txt')f.querySelector('.i-l').closest('.g2').style.display='none';
+  q('.i-ty').value=it.type||'기타';q('.i-l').value=it.lens||'';q('.i-g').value=it.tg||'';q('.i-t').value=it.t||'';q('.i-s').value=it.s||'';q('.i-u').value=it.u||'';q('.i-st').checked=!!it.star;
+  if(isNew)q('.i-d').value=dk(new Date());
+  q('.cc').addEventListener('click',()=>{infoEdit=null;renderInfo()});
+  q('.ok2').addEventListener('click',()=>{
+    const t=q('.i-t').value.trim(),sm=q('.i-s').value.trim(),u=q('.i-u').value.trim(),star=q('.i-st').checked;
+    if(!t&&!sm&&!u){q('.i-t').focus();return}
+    const lens=q('.i-l').value,tg=q('.i-g').value;
+    if(isNew){ST.info=ST.info||[];ST.info.push({id:'i'+Date.now().toString(36),type:q('.i-ty').value,t,s:sm,u,star,lens,tg,d:(q('.i-d').value.trim()||dk(new Date()))});}
+    else if(it.src==='info'){Object.assign(it.ref,{type:q('.i-ty').value,t,s:sm,u,star,lens,tg})}
+    else if(it.src==='rec'){Object.assign(ST.rec[it.day][it.id][it.idx],{t,s:sm,u,star})}
+    else{ST.rec[it.day][it.id]=[t,sm,u].filter(Boolean).join('\n');setStar(it,star)}
+    infoEdit=null;persist();renderInfo();
+  });
+  if(!isNew)q('.i-del').addEventListener('click',()=>{
+    if(!confirm('이 정보를 지울까요?'))return;
+    if(it.src==='info')ST.info=ST.info.filter(x=>x!==it.ref);
+    else if(it.src==='rec'){const l=ST.rec[it.day][it.id];l.splice(it.idx,1);if(!l.length)delete ST.rec[it.day][it.id]}
+    else delete ST.rec[it.day][it.id];
+    infoEdit=null;persist();renderInfo();
+  });
+  setTimeout(()=>q('.i-t').focus(),60);
+  return f;
+}
+
 /* ---------- 서재 ---------- */
 const BK_ST={r:'읽는 중',d:'완독',x:'중단',w:'읽을 책'};
 const BK_CAT=['소설','일반교양','실무','에세이','자기계발','육아·교육','기타'];
@@ -2404,7 +2620,7 @@ function normalize(d){
   o.rec=o.rec||{};o.extra=o.extra||{};o.todos=o.todos||[];o.picks=o.picks||{};
   o.weekNote=o.weekNote||{};o.reps=o.reps||{};o.stage=o.stage||1;
   o.todos.forEach(t=>{if(!t.lv)t.lv='일상';if(!t.u)t.u=0});
-  o.gone=o.gone||{};o.prayers=o.prayers||{};o.books=o.books||[];o.rdg=o.rdg||{};
+  o.gone=o.gone||{};o.prayers=o.prayers||{};o.books=o.books||[];o.rdg=o.rdg||{};o.info=o.info||[];o.infoStar=o.infoStar||{};o.inbox=o.inbox||[];o.inboxDone=o.inboxDone||{};
   if(!o.bookSeed&&typeof BOOK_SEED!=='undefined'){
     const nk=t=>String(t||'').replace(/[\s?.,()\[\]_·:-]/g,'');
     const seedKeys=new Set(BOOK_SEED.map(b=>nk(b[0])));
