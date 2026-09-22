@@ -236,6 +236,37 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
 .chips button{border:1px solid var(--rule);background:#FBFBF9;border-radius:999px;
   font:inherit;font-size:12.5px;padding:8px 12px;cursor:pointer;color:var(--ink)}
 .chips button.on{border-color:var(--ink);background:var(--ink);color:#fff;font-weight:600}
+.ppage{align-items:stretch;background:rgba(23,28,38,.25)}
+.ppage .sin{max-height:100vh;height:100%;border-radius:0;padding:0 18px calc(24px + env(safe-area-inset-bottom));background:#FBFAF6}
+.ptop{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;background:#FBFAF6;
+  padding:calc(12px + env(safe-area-inset-top)) 0 12px;border-bottom:1px solid #ECEAE3;margin:0 -2px 14px}
+.pback{border:0;background:#EFEDE6;width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;color:var(--ink);line-height:1}
+.pttl{flex:1;min-width:0}
+.pttl h2{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.pttl p{margin:2px 0 0;font-size:11px;color:var(--soft)}
+.pfz{display:flex;gap:4px}
+.pfz button{border:1px solid #E3E0D7;background:#fff;border-radius:9px;cursor:pointer;color:var(--ink);padding:5px 8px;line-height:1}
+.pfz button:first-child{font-size:11px}.pfz button:last-child{font-size:15px;font-weight:700}
+.ptext{--fz:17px;font-size:var(--fz);line-height:2;color:#2A2622;word-break:keep-all;padding:4px 4px 8px;
+  font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo",serif}
+.ptext .st{margin:0 0 1.1em}
+.ptext .ln{display:block;padding-left:1.4em;text-indent:-1.4em}
+.ptext .mk{display:inline-block;width:1.4em;text-indent:0;color:var(--faith);font-weight:700}
+.ptext .all{font-weight:600}
+.ptext .rb{display:block;font-size:.78em;color:#9A948A;font-style:italic;margin:.3em 0}
+.ptext .hd{display:block;font-size:.8em;font-weight:700;color:var(--faith);letter-spacing:.02em;margin:1.2em 0 .3em}
+.pempty{text-align:center;padding:26px 14px;border:1px dashed #D9D5CA;border-radius:16px;background:#fff;margin-bottom:12px}
+.pempty b{display:block;font-size:14px;margin-bottom:6px}
+.pempty p{font-size:12px;color:var(--soft);line-height:1.7;margin:0 0 12px}
+.pbtns{display:flex;gap:7px;margin-top:6px}
+.pbtns button{flex:1;padding:10px;border:1px solid #E3E0D7;background:#fff;border-radius:11px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--ink)}
+.pedit textarea{min-height:46vh;font-size:15px;line-height:1.8;background:#fff}
+.dec{display:flex;gap:12px;padding:13px 2px;border-bottom:1px solid #ECEAE3}
+.dec .dn{flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:#F1EDFB;color:var(--faith);
+  font-weight:800;font-size:13px;display:grid;place-items:center}
+.dec .dt{flex:1;font-size:calc(var(--fz,17px) - 1px);line-height:1.65;color:#2A2622;padding-top:5px;word-break:keep-all}
+.psec{font-size:12px;font-weight:700;color:var(--faith);margin:22px 0 6px;display:flex;align-items:center;gap:8px}
+.psec::after{content:"";flex:1;height:1px;background:#ECEAE3}
 .pframe{width:100%;height:62vh;border:1px solid var(--rule);border-radius:14px;background:#fff;display:block;margin-top:4px}
 .pnote{font-size:11px;color:var(--soft);line-height:1.6;margin:8px 2px 0}
 .pray{font-size:14.5px;line-height:1.95;white-space:pre-line;color:var(--ink);
@@ -470,13 +501,15 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
     <button class="copy" id="s6Board" style="margin-top:12px">주간 업무 보드 열기</button>
   </div>
 </div>
-<div class="sheet" id="sheet9">
+<div class="sheet ppage" id="sheet9">
   <div class="sin">
-    <div class="shead"><h2 id="s9Title">기도</h2><button class="x" id="s9Close" aria-label="닫기">×</button></div>
-    <p class="ssub" id="s9Sub"></p>
+    <div class="ptop">
+      <button class="pback" id="s9Close" aria-label="닫기">‹</button>
+      <div class="pttl"><h2 id="s9Title">기도</h2><p id="s9Sub"></p></div>
+      <div class="pfz"><button id="fzDn" aria-label="글자 작게">가</button><button id="fzUp" aria-label="글자 크게">가</button></div>
+    </div>
     <div class="seg" id="s9Seg"></div>
     <div id="s9Body"></div>
-    <button class="copy" id="s9Link">새 창으로 크게 보기</button>
     <button class="save" id="s9Done">기도 마치고 체크</button>
   </div>
 </div>
@@ -542,6 +575,7 @@ textarea:focus,input:focus,select:focus{outline:0;border-color:var(--ink);backgr
 </div>
 
 <script>
+const DEFAULT_PRAYERS={"morning": "* 십자 성호를 그으며\n╋ 성부와 성자와 성령의 이름으로.\n◎ 아멘.\n\n○ 하늘에 계신 우리 아버지,\n아버지의 이름이 거룩히 빛나시며\n아버지의 나라가 오시며\n아버지의 뜻이 하늘에서와 같이\n땅에서도 이루어지소서!\n● 오늘 저희에게 일용할 양식을 주시고\n저희에게 잘못한 이를 저희가 용서하오니\n저희 죄를 용서하시고\n저희를 유혹에 빠지지 않게 하시고\n악에서 구하소서.\n◎ 아멘.\n\n◎ 하느님, 저를 사랑으로 내시고\n저에게 영혼 육신을 주시어\n주님만을 섬기고 사람을 도우라 하셨나이다.\n저는 비록 죄가 많사오나\n주님께 받은 몸과 마음을 오롯이 도로 바쳐\n찬미와 봉사의 제물로 드리오니\n어여삐 여기시어 받아 주소서.\n◎ 아멘.\n\n╋ 우리 주 하느님께 권능과 영광\n지혜와 굳셈이 있사오니\n찬미와 감사와 흠숭을 영원히 받으소서.\n◎ 아멘.\n\n╋ 전능하신 하느님,\n오늘도 저희 생각과 말과 행위를\n주님의 평화로 이끌어 주소서.\n◎ 아멘.", "evening": "* 십자 성호를 그으며\n╋ 성부와 성자와 성령의 이름으로.\n◎ 아멘.\n\n╋ 주님, 오늘 생각과 말과 행위로 지은 죄와\n의무를 소홀히 한 죄를 자세히 살피고\n그 가운데 버릇이 된 죄를 깨닫게 하소서.\n* 잠깐 반성한다.\n\n◎ 하느님,\n제가 죄를 지어\n참으로 사랑받으셔야 할\n하느님의 마음을 아프게 하였기에\n악을 저지르고 선을 멀리한 모든 잘못을\n진심으로 뉘우치나이다.\n하느님의 은총으로 속죄하고\n다시는 죄를 짓지 않으며\n죄지을 기회를 피하기로 굳게 다짐하오니\n우리 구세주 예수 그리스도의 수난 공로를 보시고\n저에게 자비를 베풀어 주소서.\n아멘.\n\n○ 하느님, 하느님께서는 진리의 근원이시며\n그르침이 없으시므로\n계시하신 진리를\n교회가 가르치는 대로 굳게 믿나이다.\n\n● 하느님, 하느님께서는 자비의 근원이시며\n저버림이 없으시므로\n예수 그리스도의 공로를 통하여 주실\n구원의 은총과 영원한 생명을 바라나이다.\n\n○ 하느님, 하느님께서는 사랑의 근원이시며\n한없이 좋으시므로\n마음을 다하여 주님을 사랑하며\n이웃을 제 몸같이 사랑하나이다.\n\n╋ 하늘에 계신 우리 아버지,\n오늘 하루도 이미 저물었나이다.\n이제 저희는 구세주 예수 그리스도를 통하여\n모든 천사와 성인과 함께 주님을 흠숭하며\n지금 이 순간까지 베풀어 주신\n주님의 사랑에 감사하나이다.\n◎ 아멘.\n\n╋ 전능하신 천주\n* 십자 성호를 그으며\n성부와 성자와 성령께서는\n저희에게 강복하시고 지켜 주소서.\n◎ 아멘.", "salve": "○ 모후이시며 사랑이 넘친 어머니,\n우리의 생명, 기쁨, 희망이시여,\n● 당신 우러러 하와의 그 자손들이\n눈물을 흘리며 부르짖나이다.\n슬픔의 골짜기에서,\n○ 우리들의 보호자 성모님,\n불쌍한 저희를\n인자로운 눈으로 굽어보소서.\n● 귀양살이 끝날 때에\n당신의 아들 우리 주 예수님 뵙게 하소서.\n너그러우시고, 자애로우시며\n오! 아름다우신 동정 마리아님.\n\n○ 천주의 성모님, 저희를 위하여 빌어주시어\n● 그리스도께서 약속하신 영원한 생명을 얻게 하소서.\n\n† 기도합시다.\n하느님, 외아드님이\n삶과 죽음과 부활로써\n저희에게 영원한 구원을 마련해 주셨나이다.\n복되신 동정 마리아와 함께 이 신비를 묵상하며\n묵주기도를 바치오니\n저희가 그 가르침을 따라\n영원한 생명을 얻게 하소서.\n우리 주 그리스도를 통하여 비나이다.\n◎ 아멘."};
 const A={신앙:'#7B5FE0',건강:'#2F9E77',성장:'#2F6FE8',업무:'#DE922A',마음:'#E4658E'};
 const GROUP={신앙:'영성',건강:'운동',성장:'성장',업무:'일',마음:'성장'};
 const GC={영성:'#7B5FE0',운동:'#2F9E77',일:'#DE922A',성장:'#2F6FE8'};
@@ -1853,69 +1887,112 @@ const MYSTERY=[
    '마리아께서 하늘에 불려 올림을 받으심을 묵상합시다','마리아께서 하늘의 모후가 되심을 묵상합시다']}
 ];
 const TODAY_MYS=[3,0,2,3,1,2,0]; // 일~토
-const PRAY_URL={
-  '아침기도':'https://app.catholic.or.kr/web/prayer/?flag=0&ingId=18',
-  '저녁기도':'https://app.catholic.or.kr/web/prayer/?flag=0&ingId=19',
-  '묵주기도 5단':'https://app.catholic.or.kr/web/prayer/?flag=5&ingId=70'
+const PRAY_SRC={
+  morning:{t:'아침기도',url:'https://app.catholic.or.kr/web/prayer/?flag=0&ingId=18',sub:'하루를 봉헌하며'},
+  evening:{t:'저녁기도',url:'https://app.catholic.or.kr/web/prayer/?flag=0&ingId=19',sub:'하루를 되돌아보며'},
+  salve:{t:'성모찬송',url:'https://app.catholic.or.kr/web/prayer/?flag=5&ingId=70',sub:'묵주기도를 마치며'}
 };
-function prayUrl(item){
-  if(PRAY_URL[item.n])return PRAY_URL[item.n];
-  if(/묵주/.test(item.n))return PRAY_URL['묵주기도 5단'];
-  if(/저녁/.test(item.n))return PRAY_URL['저녁기도'];
-  return PRAY_URL['아침기도'];
-}
-const PRAYS={
- '아침기도':{sub:'하루를 봉헌하며',steps:['성호경','주님의 기도','성모송','영광송'],
-   lead:'성호를 긋고 시작합니다. 마지막에 오늘 하루를 하느님께 맡겨 드리는 지향을 마음으로 덧붙이세요.'},
- '저녁기도':{sub:'하루를 되돌아보며',steps:['성호경','주님의 기도','성모송','영광송'],
-   lead:'오늘 감사한 일 하나와 잘못한 일 하나를 떠올린 뒤 시작합니다.'},
- '묵주기도 5단':{sub:'',rosary:true}
-};
+const prayKey=item=>/묵주/.test(item.n)?'rosary':(/저녁/.test(item.n)?'evening':'morning');
 const sheet9=document.getElementById('sheet9');
-let prayItem=null, praySeg=0;
-document.getElementById('s9Close').addEventListener('click',()=>sheet9.classList.remove('open'));
-sheet9.addEventListener('click',e=>{if(e.target===sheet9)sheet9.classList.remove('open')});
-document.getElementById('s9Link').addEventListener('click',()=>{
-  if(prayItem)window.open(prayUrl(prayItem),'_blank','noopener');
+let prayItem=null,praySeg=0,prayEdit=null;
+function prayFz(){return (ST.prayFz||17)}
+document.getElementById('s9Close').addEventListener('click',()=>{sheet9.classList.remove('open');prayEdit=null});
+document.getElementById('s9Done').addEventListener('click',()=>{
+  if(prayItem)check(prayItem.id);persist();sheet9.classList.remove('open');prayEdit=null;render();
 });
+document.getElementById('fzUp').addEventListener('click',()=>{ST.prayFz=Math.min(26,prayFz()+1);persist();applyFz()});
+document.getElementById('fzDn').addEventListener('click',()=>{ST.prayFz=Math.max(13,prayFz()-1);persist();applyFz()});
+function applyFz(){sheet9.querySelectorAll('.ptext,.decs').forEach(el=>el.style.setProperty('--fz',prayFz()+'px'))}
 function openPray(item){
-  prayItem=item;praySeg=item.n==='묵주기도 5단'?TODAY_MYS[cur.getDay()]:0;
-  document.getElementById('s9Title').textContent=item.n;
-  renderPray();sheet9.classList.add('open');
-  document.querySelector('#sheet9 .sin').scrollTop=0;
+  prayItem=item;prayEdit=null;praySeg=TODAY_MYS[cur.getDay()];
+  renderPray();sheet9.classList.add('open');sheet9.querySelector('.sin').scrollTop=0;
+}
+/* 기도서 표기(○ ● ◎ ╋ < >)를 읽기 좋게 */
+function prayHTML(txt){
+  let raw=String(txt||'').replace(/\r/g,'').replace(/\u00a0/g,' ');
+  let blocks=raw.split(/\n\s*\n/);
+  const singles=blocks.filter(b=>b.trim()&&b.trim().split('\n').length===1).length;
+  if(blocks.length>6&&singles/blocks.length>0.7){           // 줄마다 빈 줄이 낀 붙여넣기
+    blocks=[blocks.map(b=>b.trim()).filter(Boolean).join('\n')];
+  }
+  return blocks.map(b=>{
+    const lines=b.split('\n').map(l=>l.replace(/\s+$/,'')).filter(l=>l.trim());
+    if(!lines.length)return '';
+    return '<div class="st">'+lines.map(l=>{
+      const t=l.trim();
+      if(/^<.*>$/.test(t)||/^\(.*\)$/.test(t))return `<span class="rb">${esc(t.replace(/^[<(]|[>)]$/g,''))}</span>`;
+      if(/^[*＊]\s*/.test(t))return `<span class="rb">${esc(t.replace(/^[*＊]\s*/,''))}</span>`;
+      if(/^\[.*\]$/.test(t)||/^#\s/.test(t))return `<span class="hd">${esc(t.replace(/^#\s|^\[|\]$/g,''))}</span>`;
+      const m=t.match(/^([○●◎╋✠†+\-•])\s*(.*)$/);
+      if(m){const all=m[1]==='◎'||m[1]==='●';
+        return `<span class="ln${all?' all':''}"><span class="mk">${m[1]==='-'||m[1]==='•'?'':esc(m[1])}</span>${esc(m[2])}</span>`}
+      return `<span class="ln"><span class="mk"></span>${esc(t)}</span>`;
+    }).join('')+'</div>';
+  }).join('');
+}
+function prayBlock(key,box){
+  const src=PRAY_SRC[key],txt=(ST.prayers||{})[key]||'';
+  if(prayEdit===key){
+    const w=document.createElement('div');w.className='pedit';
+    w.innerHTML=`<p class="pnote" style="margin:0 0 8px">굿뉴스 기도서에서 본문을 길게 눌러 복사한 뒤 아래에 붙여넣으세요. ○ ● ◎ ╋ 표시와 &lt;안내&gt; 문구는 자동으로 정리됩니다.</p>
+      <textarea spellcheck="false" placeholder="${src.t} 본문을 붙여넣으세요"></textarea>
+      <div class="pbtns"><button type="button" class="p-src">기도서 열기</button><button type="button" class="p-cc">취소</button></div>
+      <button type="button" class="save p-ok" style="margin-top:9px">저장</button>`;
+    const ta=w.querySelector('textarea');ta.value=txt;
+    w.querySelector('.p-src').addEventListener('click',()=>window.open(src.url,'_blank','noopener'));
+    w.querySelector('.p-cc').addEventListener('click',()=>{prayEdit=null;renderPray()});
+    w.querySelector('.p-ok').addEventListener('click',()=>{
+      ST.prayers=ST.prayers||{};const v=ta.value.trim();
+      if(v)ST.prayers[key]=v;else delete ST.prayers[key];
+      prayEdit=null;persist();renderPray();
+    });
+    box.appendChild(w);setTimeout(()=>ta.focus(),60);return;
+  }
+  if(!txt){
+    const e=document.createElement('div');e.className='pempty';
+    e.innerHTML=`<b>${src.t} 본문을 한 번만 넣어주세요</b>
+      <p>굿뉴스 기도서에서 복사해 붙여넣으면<br>이 화면에 기도서처럼 정리되어 계속 보입니다.</p>
+      <div class="pbtns"><button type="button" class="p-src">① 기도서 열어 복사</button><button type="button" class="p-ed">② 붙여넣기</button></div>`;
+    e.querySelector('.p-src').addEventListener('click',()=>window.open(src.url,'_blank','noopener'));
+    e.querySelector('.p-ed').addEventListener('click',()=>{prayEdit=key;renderPray()});
+    box.appendChild(e);return;
+  }
+  const d=document.createElement('div');d.className='ptext';d.innerHTML=prayHTML(txt);box.appendChild(d);
+  const eb=document.createElement('div');eb.className='pbtns';eb.style.marginTop='2px';
+  eb.innerHTML=`<button type="button">${src.t} 본문 고치기</button>`;
+  eb.querySelector('button').addEventListener('click',()=>{prayEdit=key;renderPray()});
+  box.appendChild(eb);
 }
 function renderPray(){
   const seg=document.getElementById('s9Seg'),body=document.getElementById('s9Body');
-  seg.innerHTML='';body.innerHTML='';
+  seg.innerHTML='';body.innerHTML='';seg.style.display='none';
+  const key=prayKey(prayItem);
   const on=doneOf(dk(cur)).indexOf(prayItem.id)>-1;
   document.getElementById('s9Done').textContent=on?'닫기':'기도 마치고 체크';
-  const rosary=/묵주/.test(prayItem.n);
-  if(rosary){
+  document.getElementById('s9Title').textContent=prayItem.n;
+  if(key==='rosary'){
     const mi=TODAY_MYS[cur.getDay()];
     document.getElementById('s9Sub').textContent=`${DAYS[cur.getDay()]}요일 · 오늘은 ${MYSTERY[mi].n}`;
+    seg.style.display='flex';
     MYSTERY.forEach((m,i)=>{
       const b=document.createElement('button');b.type='button';
-      b.className=praySeg===i?'on':'';b.textContent=m.n.slice(0,2);
+      b.className=praySeg===i?'on':'';b.textContent=m.n.replace('의 신비','')+(i===mi?' · 오늘':'');
       b.addEventListener('click',()=>{praySeg=i;renderPray()});
       seg.appendChild(b);
     });
     const m=MYSTERY[praySeg];
-    const box=document.createElement('div');box.className='mys on';
-    box.innerHTML=`<b>${m.n}<span>${m.d}</span></b><ol>${m.l.map(x=>`<li>${x}</li>`).join('')}</ol>`;
-    body.appendChild(box);
-    const g=document.createElement('p');g.className='pnote';
-    g.textContent='아래 기도서에서 사도신경 · 각 신비 묵상 · 성모찬송까지 이어서 보실 수 있습니다.';
-    body.appendChild(g);
+    const h=document.createElement('div');h.className='psec';h.textContent=`${m.n} · ${m.d}`;body.appendChild(h);
+    const list=document.createElement('div');list.className='decs';
+    m.l.forEach((x,i)=>{const r=document.createElement('div');r.className='dec';
+      r.innerHTML=`<span class="dn">${i+1}단</span><span class="dt">${esc(x)}</span>`;list.appendChild(r)});
+    body.appendChild(list);
+    const h2=document.createElement('div');h2.className='psec';h2.textContent='성모찬송';body.appendChild(h2);
+    prayBlock('salve',body);
   }else{
-    document.getElementById('s9Sub').textContent=/저녁/.test(prayItem.n)?'하루를 되돌아보며 · 가톨릭 기도서':'하루를 봉헌하며 · 가톨릭 기도서';
+    document.getElementById('s9Sub').textContent=PRAY_SRC[key].sub+' · 가톨릭 기도서';
+    prayBlock(key,body);
   }
-  const fr=document.createElement('iframe');fr.className='pframe';
-  fr.src=prayUrl(prayItem);fr.title=prayItem.n+' 기도문';fr.loading='lazy';
-  fr.setAttribute('referrerpolicy','no-referrer');
-  body.appendChild(fr);
-  const n=document.createElement('p');n.className='pnote';
-  n.textContent='굿뉴스 공식 기도서입니다. 화면이 비어 보이면 아래 \'새 창으로 크게 보기\'를 눌러 주세요.';
-  body.appendChild(n);
+  applyFz();
 }
 
 /* ---------- 백업 · 이전 ---------- */
@@ -2032,7 +2109,8 @@ function normalize(d){
   o.rec=o.rec||{};o.extra=o.extra||{};o.todos=o.todos||[];o.picks=o.picks||{};
   o.weekNote=o.weekNote||{};o.reps=o.reps||{};o.stage=o.stage||1;
   o.todos.forEach(t=>{if(!t.lv)t.lv='일상';if(!t.u)t.u=0});
-  o.gone=o.gone||{};
+  o.gone=o.gone||{};o.prayers=o.prayers||{};
+  ['morning','evening','salve'].forEach(k=>{if(!o.prayers[k]&&typeof DEFAULT_PRAYERS!=='undefined'){o.prayers[k]=DEFAULT_PRAYERS[k];o._dirty=true}});
   if(!o.routine||!o.routine.wd)o.routine=defaultRoutine(o.stage||1);
   if(!Array.isArray(o.tpls))o.tpls=defaultTpls();
   if((o.tplVer||1)<TPL_VER){
