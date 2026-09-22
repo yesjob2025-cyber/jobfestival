@@ -2013,6 +2013,18 @@ function renderLib(){
     });
   };
   drawList();
+  const rlist=books.filter(b=>b.st==='r');
+  if(libSeg==='r'&&rlist.length>1){
+    const all=document.createElement('button');all.type='button';all.className='copy';all.style.marginTop='4px';
+    all.textContent=`읽는 중 ${rlist.length}권 모두 완독 처리`;
+    all.addEventListener('click',()=>{
+      if(!confirm(`읽는 중인 ${rlist.length}권을 모두 완독으로 옮길까요?\n완독일이 없는 책은 시작일(없으면 오늘)로 기록합니다.`))return;
+      const today=dk(new Date());
+      rlist.forEach(b=>{b.st='d';if(!b.end)b.end=b.start&&/^\d{4}-/.test(b.start)?b.start:today;if(b.pg)b.cur=b.pg;b.u=Date.now()});
+      libSeg='d';persist();renderLib();
+    });
+    body.appendChild(all);
+  }
   const bar=document.createElement('div');bar.className='tbar';
   const ad=document.createElement('button');ad.type='button';ad.className='allbtn';ad.style.borderStyle='solid';ad.textContent='+ 책 추가';
   ad.addEventListener('click',()=>{libEdit='new';renderLib()});
@@ -2075,8 +2087,21 @@ function normDate(v,yr){
   if(m&&yr)return `${yr}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
   return v;
 }
+function tsvRows(txt){
+  const t=String(txt||'').replace(/\r\n?/g,'\n'),rows=[];let row=[],cell='',q=false;
+  for(let i=0;i<t.length;i++){
+    const ch=t[i];
+    if(q){if(ch==='"'){if(t[i+1]==='"'){cell+='"';i++}else q=false}else cell+=ch;continue}
+    if(ch==='"'&&cell==='')q=true;
+    else if(ch==='\t'){row.push(cell);cell=''}
+    else if(ch==='\n'){row.push(cell);rows.push(row);row=[];cell=''}
+    else cell+=ch;
+  }
+  row.push(cell);rows.push(row);
+  return rows.map(r=>r.map(c=>c.replace(/\s*\n\s*/g,', ').trim()));
+}
 function parseBooks(txt){
-  const rows=String(txt||'').replace(/\r/g,'').split('\n').map(l=>l.split('\t')).filter(r=>r.some(c=>c.trim()));
+  const rows=tsvRows(txt).filter(r=>r.some(c=>c.trim()));
   if(!rows.length)return [];
   const H={t:/^(제목|도서명|책\s*제목|서명|책\s*이름|도서)$/,a:/^(저자|지은이|작가|저\s*자)$/,pub:/^(출판사|출판)$/,
     pg:/^(페이지|쪽수|쪽|페이지수|분량)$/,start:/^(시작일?|시작\s*(날짜|일자)|읽기\s*시작|시작한\s*날)$/,end:/^(완료일?|종료일?|완독일?|(완료|종료|완독)\s*(날짜|일자)|읽은\s*날(짜)?|다\s*읽은\s*날|완독)$/,
@@ -2112,10 +2137,16 @@ function importForm(){
   f.querySelector('.ok2').addEventListener('click',()=>{
     const l=parseBooks(ta.value);if(!l.length){pv.textContent='읽을 수 있는 줄이 없습니다. 칸이 탭으로 나뉜 표를 붙여넣어 주세요.';return}
     const key=b=>(b.t+'|'+(b.a||'')).replace(/\s/g,'');
-    const have=new Set(ST.books.map(key));let n=0;
-    l.forEach((b,i)=>{if(have.has(key(b)))return;b.id='b'+Date.now().toString(36)+i;b.u=Date.now();ST.books.push(b);n++});
+    const have={};ST.books.forEach(b=>{(have[key(b)]=have[key(b)]||[]).push(b)});let n=0,up=0;
+    Object.values(have).forEach(g=>g.sort((x,y)=>String(x.start||'').localeCompare(String(y.start||''))));
+    l.forEach((b,i)=>{
+      const g=have[key(b)],o=g&&g.length?g.shift():null;
+      if(o){['a','pub','pg','cat','start','end','yr'].forEach(f=>{if(b[f])o[f]=b[f]});
+        if(b.end){o.st='d';o.cur=o.pg||o.cur}o.u=Date.now();up++;return}
+      b.id='b'+Date.now().toString(36)+i;b.u=Date.now();ST.books.push(b);n++;
+    });
     persist();libEdit=null;libSeg='d';renderLib();
-    setTimeout(()=>alert(`${n}권을 서재에 넣었습니다.${l.length-n?` (이미 있던 ${l.length-n}권은 건너뜀)`:''}`),30);
+    setTimeout(()=>alert(`새로 ${n}권 · 기존 ${up}권 갱신`),30);
   });
   setTimeout(()=>ta.focus(),60);
   return f;
