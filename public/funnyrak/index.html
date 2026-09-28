@@ -2182,7 +2182,7 @@ document.getElementById('s12Close').addEventListener('click',()=>{sheet12.classL
 sheet12.addEventListener('click',e=>{if(e.target===sheet12){sheet12.classList.remove('open');render()}});
 function openLib(mode){libEdit=mode==='add'?'new':null;renderLib();sheet12.classList.add('open');sheet12.querySelector('.sin').scrollTop=0}
 const yOf=b=>{if(b.yr)return b.yr;const m=(b.end||b.start||'').match(/^(\d{4})/);return m?m[1]:''};
-let libCat='전체';
+let libCat='전체',libOpen={};  // libOpen: 서재에서 펼친 연도 (기본은 모두 접힘)
 function renderLib(){
   const top=document.getElementById('s12Top'),seg=document.getElementById('s12Seg'),body=document.getElementById('s12Body');
   top.innerHTML='';seg.innerHTML='';body.innerHTML='';
@@ -2201,7 +2201,11 @@ function renderLib(){
   const yl=Object.keys(ys).sort().slice(-9);
   const mx=Math.max(1,...yl.map(y=>ys[y]));
   const yr=document.createElement('div');yr.className='lyear';
-  yr.innerHTML=yl.map(y=>`<div class="${y===Y?'now':''}"><em>${ys[y]||''}</em><b style="height:${Math.max(3,ys[y]/mx*40)}px"></b><span>${y.slice(2)}년</span></div>`).join('');
+  yr.innerHTML=yl.map(y=>`<div class="${y===Y?'now':''}" data-y="${y}" style="cursor:pointer"><em>${ys[y]||''}</em><b style="height:${Math.max(3,ys[y]/mx*40)}px"></b><span>${y.slice(2)}년</span></div>`).join('');
+  yr.querySelectorAll('[data-y]').forEach(el=>el.addEventListener('click',()=>{   // 막대를 누르면 그 해만 펼치기
+    const y=el.dataset.y;libOpen={[y]:true};drawList();
+    const h=box.querySelector(`[data-y="${y}"]`);if(h)h.scrollIntoView({block:'start',behavior:'smooth'});
+  }));
   top.appendChild(yr);
   // 지금 읽는 중
   const rs=books.filter(b=>b.st==='r');
@@ -2231,19 +2235,34 @@ function renderLib(){
     if(q)list=list.filter(b=>(b.t+' '+(b.a||'')+' '+(b.pub||'')).toLowerCase().indexOf(q)>-1);
     list.sort((a,b)=>(yOf(b)+(b.end||'')).localeCompare(yOf(a)+(a.end||'')));
     if(!list.length){box.innerHTML='<div class="empty">해당하는 책이 없습니다.</div>';return}
-    let lastY=null;
-    list.forEach(b=>{
-      const y=yOf(b)||'연도 없음';
-      if(y!==lastY){lastY=y;const n=list.filter(x=>(yOf(x)||'연도 없음')===y).length;
-        const h=document.createElement('div');h.className='grp';h.style.cursor='default';
-        h.innerHTML=`${y}${/^\d+$/.test(y)?'년':''} <span>${n}권</span>`;box.appendChild(h)}
-      const c=document.createElement('div');c.className='bk';c.style.padding='9px 11px';c.style.marginBottom='6px';
-      c.innerHTML=`<div class="bt1" style="font-size:13.5px">${esc(b.t)}</div>
-        <div class="bt3" style="margin-top:3px"><span>${esc([b.a,b.pub].filter(Boolean).join(' · '))}</span>
-          ${b.rate?`<span>${'★'.repeat(b.rate)}</span>`:''}
-          <span class="st" style="color:var(--soft);font-weight:600">${libCat==='전체'?esc(b.cat||'기타')+' · ':''}${esc((b.end||'').slice(5).replace('-','.'))}</span></div>`;
-      c.addEventListener('click',()=>{libEdit=b.id;renderLib();sheet12.querySelector('.sin').scrollTop=0});
-      box.appendChild(c);
+    const groups=[],byY={};
+    list.forEach(b=>{const y=yOf(b)||'연도 없음';if(!byY[y]){byY[y]=[];groups.push(y)}byY[y].push(b)});
+    const isOpen=y=>!!q||!!libOpen[y];   // 검색 중에는 결과가 보이도록 모두 펼침
+    if(!q){
+      const allOpen=groups.every(y=>libOpen[y]);
+      const tg=document.createElement('button');tg.type='button';tg.className='allbtn';
+      tg.style.cssText='display:block;flex:none;margin:10px 0 0 auto;padding:6px 12px;border-style:solid';
+      tg.textContent=allOpen?'모두 접기':'모두 펼치기';
+      tg.addEventListener('click',()=>{libOpen={};if(!allOpen)groups.forEach(y=>libOpen[y]=true);drawList()});
+      box.appendChild(tg);
+    }
+    groups.forEach(y=>{
+      const open=isOpen(y);
+      const h=document.createElement('div');h.className='grp'+(open?'':' closed');h.dataset.y=y;
+      h.innerHTML=`${y}${/^\d+$/.test(y)?'년':''} <span>${byY[y].length}권</span><span class="arw">▾</span>`;
+      if(!q)h.addEventListener('click',()=>{libOpen[y]=!libOpen[y];drawList()});
+      else h.style.cursor='default';
+      box.appendChild(h);
+      if(!open)return;
+      byY[y].forEach(b=>{
+        const c=document.createElement('div');c.className='bk';c.style.padding='9px 11px';c.style.marginBottom='6px';
+        c.innerHTML=`<div class="bt1" style="font-size:13.5px">${esc(b.t)}</div>
+          <div class="bt3" style="margin-top:3px"><span>${esc([b.a,b.pub].filter(Boolean).join(' · '))}</span>
+            ${b.rate?`<span>${'★'.repeat(b.rate)}</span>`:''}
+            <span class="st" style="color:var(--soft);font-weight:600">${libCat==='전체'?esc(b.cat||'기타')+' · ':''}${esc((b.end||'').slice(5).replace('-','.'))}</span></div>`;
+        c.addEventListener('click',()=>{libEdit=b.id;renderLib();sheet12.querySelector('.sin').scrollTop=0});
+        box.appendChild(c);
+      });
     });
   };
   sr.addEventListener('input',()=>{libQ=sr.value;drawList()});
