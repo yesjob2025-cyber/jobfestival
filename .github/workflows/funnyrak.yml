@@ -1,0 +1,23 @@
+name: funnyrak (하루 계획)
+
+on:
+  push:
+    paths: ['public/funnyrak/**', 'funnyrak/**', '.github/workflows/funnyrak.yml']
+  pull_request:
+    paths: ['public/funnyrak/**', 'funnyrak/**', '.github/workflows/funnyrak.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: funnyrak
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: funnyrak/package-lock.json
+      - run: npm ci
+      - run: npm test

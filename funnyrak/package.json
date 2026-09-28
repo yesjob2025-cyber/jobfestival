@@ -1,0 +1,12 @@
+{
+  "name": "funnyrak-daily-plan",
+  "private": true,
+  "description": "하루 계획 앱 · Apps Script 테스트 도구 (배포되는 앱은 public/funnyrak/index.html)",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=18" },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  }
+}
