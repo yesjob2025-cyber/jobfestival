@@ -60,7 +60,7 @@ function xmlEl(el) {
 }
 
 function createEnv({ data = {}, fetch } = {}) {
-  const env = { db: { data: JSON.parse(JSON.stringify(data)) }, puts: 0, logs: [], sheets: {} };
+  const env = { db: { data: JSON.parse(JSON.stringify(data)) }, puts: 0, logs: [], sheets: {}, triggers: [], urls: [] };
   const ss = {
     getSheetByName: n => env.sheets[n] || null,
     insertSheet: n => (env.sheets[n] = makeSheet(n)),
@@ -78,6 +78,7 @@ function createEnv({ data = {}, fetch } = {}) {
         if ((opt.method || 'get') === 'patch') { env.db = JSON.parse(opt.payload); env.puts++; return res(204, ''); }
         return res(200, JSON.stringify([{ data: JSON.parse(JSON.stringify(env.db.data)) }]));
       }
+      env.urls.push(url);
       if (fetch) return res(...fetch(url));
       return res(404, '');
     }
@@ -87,7 +88,16 @@ function createEnv({ data = {}, fetch } = {}) {
     console: { log: m => env.logs.push(m), warn: m => env.logs.push(m) },
     UrlFetchApp,
     SpreadsheetApp: { getActive: () => ss, getUi: () => chain(), newDataValidation: chain, newConditionalFormatRule: chain },
-    ScriptApp: { getProjectTriggers: () => [], deleteTrigger() {}, newTrigger: () => chain() },
+    ScriptApp: {
+      getProjectTriggers: () => env.triggers.slice(),
+      deleteTrigger: t => { env.triggers = env.triggers.filter(x => x !== t); },
+      newTrigger: fn => {   // 만든 자동 실행을 env.triggers 에 기록
+        const t = { fn, getHandlerFunction: () => fn };
+        const b = new Proxy({}, { get: (_, k) => k === 'create' ? () => { env.triggers.push(t); return t; }
+          : (...a) => { if (k === 'atHour') t.hour = a[0]; return b; } });
+        return b;
+      }
+    },
     PropertiesService: { getScriptProperties: () => ({ getProperties: () => ({ ...props }) }) },
     CacheService: { getScriptCache: () => ({ get: k => cache[k] || null, put: (k, v) => { cache[k] = v; } }) },
     LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock() {}, releaseLock() {} }) },

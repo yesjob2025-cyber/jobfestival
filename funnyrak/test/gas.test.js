@@ -87,3 +87,48 @@ test('wcollectReset — inbox 를 비우고 다시 들어오지 않게 표시', 
   assert.deepEqual(plain(env.db.data.inbox), []);
   assert.ok(env.db.data.inboxDone.nA);
 });
+
+const MEDIA_SITES = ['news.unn.net', 'dhnews.co.kr', 'kyosu.net', 'magazine.hankyung.com', 'univ20.com', 'edupress.kr', 'edunnews.co.kr'];
+const mediaHits = env => MEDIA_SITES.filter(site => env.urls.some(u => decodeURIComponent(u).indexOf('site:' + site) > -1));
+
+test('전문지는 하루에 한 곳만 · 날짜가 바뀌면 다음 곳으로', () => {
+  const seen = [];
+  for (let i = 0; i < 7; i++) {
+    const t = Date.UTC(2026, 8, 29, 0, 0) + i * 864e5;   // 매일 한국 시각 09:00
+    const env = createEnv({ data: { inbox: [], inboxDone: {} }, fetch: () => [200, rss([])] });
+    env.run(`Date.now = () => ${t}`);                   // 스크립트 쪽 시계만 옮김
+    env.run('wcollectRun()');
+    const hits = mediaHits(env);
+    assert.equal(hits.length, 1, '하루에 전문지 한 곳만 가져와야 합니다: ' + hits.join(', '));
+    seen.push(hits[0]);
+  }
+  assert.equal(new Set(seen).size, 7, '일주일이면 7곳을 한 번씩 돌아야 합니다');
+});
+
+test('키워드 뉴스가 가장 많은 자리를 차지', () => {
+  const env = createEnv();
+  const q = JSON.parse(env.run('JSON.stringify(WCOL.QUOTA)'));
+  const top = Object.keys(q).sort((a, b) => q[b] - q[a])[0];
+  assert.equal(top, '뉴스·키워드');
+});
+
+test('wcollectSetup — 7시 · 9시 자동 실행을 만들고, 예전 wcollectRun 트리거는 정리', () => {
+  const env = createEnv({ data: {} });
+  env.run("ScriptApp.newTrigger('wcollectRun').timeBased().atHour(7).everyDays(1).create()");
+  env.run("ScriptApp.newTrigger('wsyncPull').timeBased().everyMinutes(5).create()");
+  env.run('wcollectSetup()');
+  const mine = env.triggers.filter(t => /^wcollect/.test(t.fn));
+  assert.deepEqual(mine.map(t => [t.fn, t.hour]), [['wcollectDaily', 7], ['wcollectDaily', 9]]);
+  assert.ok(env.triggers.some(t => t.fn === 'wsyncPull'), '시트 동기화 트리거는 그대로 둬야 합니다');
+  assert.match(env.run('wcollectCheck()'), /자동 실행 2개 켜짐/);
+});
+
+test('wcollectDaily — 오늘 이미 수집했으면 건너뛰고, 아니면 수집', () => {
+  const env = createEnv({ data: { inbox: [], inboxDone: {}, collectedAt: Date.now() - 60e3 },
+    fetch: () => [200, rss([['대학 취업 프로그램', 'https://n/x', '대학저널']])] });
+  assert.equal(env.run('wcollectDaily()'), 0);
+  assert.equal(env.puts, 0);
+  env.db.data.collectedAt = Date.now() - 3 * 864e5;
+  assert.equal(env.run('wcollectDaily()'), 1);
+  assert.equal(env.puts, 1);
+});

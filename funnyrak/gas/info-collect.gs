@@ -10,17 +10,24 @@
  *   SB_ID   funnyrak@jobfestival.co.kr
  *   SB_PW   (앱 비밀번호)
  *
- * 실행: wcollectRun ▶ (지금 한 번 수집) · wcollectSetup ▶ (매일 아침 7시 자동 켜기, 지금은 수집 안 함)
+ * 실행: wcollectRun ▶ (지금 한 번 수집) · wcollectSetup ▶ (매일 아침 자동 켜기, 지금은 수집 안 함)
+ *       wcollectCheck ▶ — 자동 수집이 켜져 있는지 · 앱 연결 · 마지막 수집 시각 · 오늘의 전문지 확인
  *       wcollectReset ▶ — '새로 들어온 것'을 모두 비우기 (비운 기사는 다시 들어오지 않음)
+ *
+ * 매일 구성: 키워드 뉴스 중심 + 전문지는 하루에 한 곳씩 돌아가며(7곳 → 일주일에 한 번씩, 지난 7일치)
+ *            + 정책 보도자료 · 연구기관 소식 조금
+ * 자동 실행: 7시에 수집하고, 7시 실행이 실패했으면 9시에 한 번 더 시도 (이미 수집한 날은 건너뜀)
  */
 
 const WCOL = {
   HOUR: 7,               // 매일 수집 시각
+  RETRY_HOUR: 9,         // 7시 수집이 실패한 날 다시 시도하는 시각
   DAYS_NEWS: 1,          // 키워드 뉴스 · 보도자료 · 연구기관: 최근 24시간
-  DAYS_MEDIA: 7,         // 전문지 · 주간지: 최근 7일
+  DAYS_MEDIA: 7,         // 전문지: 오늘 차례인 한 곳의 최근 7일 (7곳을 돌아가며 → 매체마다 일주일에 한 번)
+  MEDIA_MAX: 10,         // 오늘 차례 전문지에서 최대
   PER_QUERY: 4,          // 검색어 하나당 최대
   INBOX_MAX: 50,         // '새로 들어온 것' 최대
-  QUOTA: { '뉴스·키워드': 20, '전문지·신문': 12, '연구기관': 10, '정책·보도자료': 8 },   // 하루 분류별 자리 (남으면 다른 분류가 채움)
+  QUOTA: { '뉴스·키워드': 30, '전문지·신문': 10, '정책·보도자료': 5, '연구기관': 5 },   // 하루 분류별 자리 (남으면 다른 분류가 채움)
   INBOX_DAYS: 14,        // 손대지 않은 건 며칠 뒤 정리
   QUERIES: [
     // [검색어, 렌즈, 주제]
@@ -58,7 +65,7 @@ const WCOL = {
     ['고용노동부', 'site:korea.kr 고용노동부'],
     ['중소벤처기업부', 'site:korea.kr 중소벤처기업부']
   ],
-  // 전문지 — [매체 이름, 검색어]  사이트 글 중 KEYWORDS 가 제목에 있는 것만
+  // 전문지 — [매체 이름, 검색어]  하루에 한 곳씩 이 순서대로 돌아감. 사이트 글 중 KEYWORDS 가 제목에 있는 것만
   MEDIA: [
     ['한국대학신문', 'site:news.unn.net'],
     ['대학저널', 'site:dhnews.co.kr'],
@@ -82,16 +89,52 @@ const WCOL = {
     ['외국인', /외국인|유학생|이민자/], ['중장년·신중년', /중장년|신중년|시니어|고령/],
     ['예비창업자', /창업/], ['청년·대학', /청년|대학|대학생|취준생|MZ|Z세대/]
   ],
-  HANDLER: 'wcollectRun'
+  HANDLER: 'wcollectDaily',
+  OLD_HANDLERS: ['wcollectRun', 'wcollectDaily']   // 설치할 때 지우는 이 스크립트의 예전 자동 실행
 };
 
 function wcollectSetup() {
-  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === WCOL.HANDLER)
+  ScriptApp.getProjectTriggers().filter(t => WCOL.OLD_HANDLERS.indexOf(t.getHandlerFunction()) > -1)
     .forEach(t => ScriptApp.deleteTrigger(t));
-  ScriptApp.newTrigger(WCOL.HANDLER).timeBased().atHour(WCOL.HOUR).everyDays(1).inTimezone('Asia/Seoul').create();
+  [WCOL.HOUR, WCOL.RETRY_HOUR].forEach(h =>
+    ScriptApp.newTrigger(WCOL.HANDLER).timeBased().atHour(h).everyDays(1).inTimezone('Asia/Seoul').create());
   wcolGet_();   // 앱 연결만 확인 (지금 수집하지는 않음)
-  console.log(`설정 완료 · 내일부터 매일 아침 ${WCOL.HOUR}시에 자동 수집합니다`);
+  console.log(`설정 완료 · 매일 아침 ${WCOL.HOUR}시에 자동 수집합니다 (실패한 날은 ${WCOL.RETRY_HOUR}시에 한 번 더)`);
   try { SpreadsheetApp.getActive().toast(`설정 완료 · 매일 아침 ${WCOL.HOUR}시 자동 수집`, '정보 수집', 8); } catch (e) {}
+}
+
+/* ---------- 자동 실행 (트리거) — 오늘 이미 수집했으면 건너뜀 ---------- */
+function wcollectDaily() {
+  const d = wcolGet_();
+  if (d.collectedAt && wcolDay_(d.collectedAt) === wcolDay_(Date.now())) {
+    console.log('오늘은 이미 수집했습니다 · 건너뜀');
+    return 0;
+  }
+  return wcollectRun();
+}
+
+/* ---------- 점검 ---------- */
+function wcollectCheck() {
+  const out = [];
+  const trig = ScriptApp.getProjectTriggers().filter(t => WCOL.OLD_HANDLERS.indexOf(t.getHandlerFunction()) > -1);
+  out.push(trig.length
+    ? `자동 실행 ${trig.length}개 켜짐 (${trig.map(t => t.getHandlerFunction()).join(', ')})`
+      + (trig.some(t => t.getHandlerFunction() === WCOL.HANDLER) ? '' : ' — 예전 방식입니다. wcollectSetup 을 한 번 실행하세요')
+    : '자동 실행이 꺼져 있습니다 → wcollectSetup ▶ 을 실행하세요');
+  try {
+    const d = wcolGet_();
+    out.push('앱 연결 정상');
+    out.push(d.collectedAt
+      ? '마지막 수집 ' + Utilities.formatDate(new Date(d.collectedAt), 'Asia/Seoul', 'yyyy-MM-dd HH:mm')
+      : '아직 한 번도 수집하지 않았습니다');
+    out.push(`새로 들어온 것 ${(d.inbox || []).length}건`);
+  } catch (e) {
+    out.push('앱 연결 실패 — ' + e.message);
+  }
+  out.push(`오늘의 전문지: ${wcolMediaToday_()[0]}`);
+  const msg = out.join('\n');
+  console.log(msg);
+  return msg;
 }
 
 /* ---------- 비우기 ---------- */
@@ -127,7 +170,7 @@ function wcollectRun() {
     Utilities.sleep(300);
   });
   bySource(WCOL.POLICY, '정책·보도자료', true, 8, WCOL.DAYS_NEWS);
-  bySource(WCOL.MEDIA, '전문지·신문', true, 6, WCOL.DAYS_MEDIA);
+  bySource([wcolMediaToday_()], '전문지·신문', true, WCOL.MEDIA_MAX, WCOL.DAYS_MEDIA);   // 하루 한 곳씩 돌아가며
   bySource(WCOL.INSTITUTES, '연구기관', false, 4, WCOL.DAYS_NEWS);
 
   const lock = LockService.getScriptLock();
@@ -182,6 +225,10 @@ function wcollectRun() {
     return added;
   } finally { lock.releaseLock(); }
 }
+
+/* ---------- 날짜 · 전문지 순번 ---------- */
+function wcolDay_(ts) { return Math.floor((ts + 9 * 3600e3) / 864e5); }          // 한국 날짜 기준 날 번호
+function wcolMediaToday_() { return WCOL.MEDIA[wcolDay_(Date.now()) % WCOL.MEDIA.length]; }
 
 /* ---------- 가져오기 ---------- */
 function wcolNews_(q, days) {
