@@ -151,3 +151,10 @@ test('연구기관은 토 · 일에만 · 키워드 · 전문지 · 보도자료
     assert.equal(mediaHits(env).length, 1, name + '요일 전문지');
   }
 });
+
+test('가져오기가 전부 실패하면 오류로 끝나고 수집 시각을 남기지 않음 (9시 재시도 가능)', () => {
+  const env = createEnv({ data: { inbox: [], inboxDone: {} }, fetch: () => [503, ''] });
+  assert.throws(() => env.run('wcollectRun()'), /하나도 가져오지 못했습니다/);
+  assert.equal(env.puts, 0);
+  assert.equal(env.db.data.collectedAt, undefined);
+});

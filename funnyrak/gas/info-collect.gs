@@ -157,23 +157,32 @@ function wcollectReset() {
 
 /* ---------- 실행 ---------- */
 function wcollectRun() {
-  const got = [];
+  const got = [], errs = [];
+  let tried = 0;
   WCOL.QUERIES.forEach(([q, lens, topic]) => {
+    tried++;
     try { wcolNews_(q, WCOL.DAYS_NEWS).slice(0, WCOL.PER_QUERY).forEach(x => got.push(Object.assign(x, { lens, topic, type: '뉴스·키워드', q }))); }
-    catch (e) { console.warn('뉴스 실패: ' + q + ' — ' + e); }
+    catch (e) { errs.push(q + ' — ' + e); console.warn('뉴스 실패: ' + q + ' — ' + e); }
     Utilities.sleep(300);
   });
   const bySource = (list, type, need, max, days) => list.forEach(([name, q]) => {
+    tried++;
     try {
       const rows = wcolNews_(q, days).filter(x => !need || WCOL.KEYWORDS.some(k => x.t.indexOf(k) > -1)).slice(0, max);
       rows.forEach(x => got.push(Object.assign(x, { src: name, type, lens: wcolLens_(x.t), topic: '', q })));
       console.log(`${name}: ${rows.length}건`);
-    } catch (e) { console.warn(type + ' 실패: ' + name + ' — ' + e); }
+    } catch (e) { errs.push(name + ' — ' + e); console.warn(type + ' 실패: ' + name + ' — ' + e); }
     Utilities.sleep(300);
   });
   bySource(WCOL.POLICY, '정책·보도자료', true, 8, WCOL.DAYS_NEWS);
   bySource([wcolMediaToday_()], '전문지·신문', true, WCOL.MEDIA_MAX, WCOL.DAYS_MEDIA);   // 하루 한 곳씩 돌아가며
   if (wcolWeekend_()) bySource(WCOL.INSTITUTES, '연구기관', false, 4, WCOL.DAYS_INST);   // 토 · 일에만
+
+  // 가져오기가 전부 실패하면 '수집함'으로 기록하지 않고 오류로 끝냄 → 실행 기록에 실패로 남고 9시에 다시 시도
+  if (errs.length && errs.length === tried) {
+    throw new Error(`기사를 하나도 가져오지 못했습니다 (${tried}곳 모두 실패). 첫 오류: ${errs[0]}`);
+  }
+  if (errs.length) console.warn(`가져오기 실패 ${errs.length} / ${tried}곳`);
 
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
