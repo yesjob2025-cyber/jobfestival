@@ -73,3 +73,29 @@ test('규칙 4 — mergeTodos: 최신(u) 우선 · 삭제 기록 · 수집함 �
     assert.equal(w.eval('ST.collectedAt'), 9);
   } finally { w.close(); }
 });
+
+test('주말 신앙 읽기 — 기존 루틴에 한 번만 추가 · 지우면 다시 안 생김', async () => {
+  const w0 = await loadApp(null);
+  const base = JSON.parse(w0.eval('JSON.stringify(ST)'));
+  w0.close();
+  // 추가되기 전 사용자 루틴 흉내: 주말 항목을 빼고 rtVer 없음
+  ['sat', 'sun'].forEach(d => { base.routine[d]['오전'] = base.routine[d]['오전'].filter(x => x.k !== '가톨릭신문 · 매일주보'); });
+  delete base.rtVer;
+  base.log = { '2026-09-27': ['0-오전-할 일 정리'] };
+
+  const w = await loadApp(base);
+  try {
+    const names = d => JSON.parse(w.eval(`JSON.stringify(ST.routine.${d}['오전'].map(x=>x.k))`));
+    assert.deepEqual(names('sat').filter(k => k === '가톨릭신문 · 매일주보').length, 1);
+    assert.equal(names('sun')[0], '가톨릭신문 · 매일주보');
+    assert.equal(JSON.parse(w.eval("JSON.stringify(ST.routine.sun['오전'][0])")).a, '신앙');
+    assert.equal(w.eval('JSON.stringify(ST.routine.wd).indexOf("매일주보")'), -1, '평일에는 없어야 합니다');
+    assert.deepEqual(JSON.parse(w.eval("JSON.stringify(ST.log['2026-09-27'])")), ['0-오전-할 일 정리']);
+    const after = JSON.parse(w.eval('JSON.stringify(ST)'));
+    after.routine.sat['오전'] = after.routine.sat['오전'].filter(x => x.k !== '가톨릭신문 · 매일주보');
+    w.close();
+    const w2 = await loadApp(after);
+    assert.equal(w2.eval("ST.routine.sat['오전'].some(x=>x.k==='가톨릭신문 · 매일주보')"), false, '지운 항목은 다시 생기면 안 됩니다');
+    w2.close();
+  } catch (e) { w.close(); throw e; }
+});

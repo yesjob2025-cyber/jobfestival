@@ -711,10 +711,12 @@ const EVENING=[
   {s:0,n:'저녁기도',a:'신앙',m:3,p:1,pray:true,note:'아이들과 함께'}
 ];
 const WEEKDAY={아침:MORNING,오전:FORENOON,오후:NOON,저녁:EVENING};
+// 주말 신앙 읽기 — 토 · 일 오전 (기존 사용자 루틴에는 normalize() 의 rtVer 1 에서 한 번 추가)
+const WEEKEND_FAITH={s:0,n:'가톨릭신문 · 매일주보',a:'신앙',m:20,p:2,note:'한 주 소식과 말씀 읽기',rec:{t:'신앙 읽기 메모',ph:'기사 · 주보에서 마음에 남은 한 줄'}};
 const PLAN={
  1:WEEKDAY,2:WEEKDAY,3:WEEKDAY,4:WEEKDAY,5:WEEKDAY,
  6:{아침:[MORNING[0],MORNING[1],MORNING[2]],
-    오전:[{s:1,n:TODO_NAME,a:'업무',m:10,p:1,note:'주말엔 개인 할 일만',todo:true}],
+    오전:[WEEKEND_FAITH,{s:1,n:TODO_NAME,a:'업무',m:10,p:1,note:'주말엔 개인 할 일만',todo:true}],
     오후:[{s:0,n:'토요 미사',a:'신앙',m:60,p:1,note:'오후 3시',rec:R_MASS},
           {s:0,n:'성당',a:'신앙',m:120,p:1,note:'6시까지'}],
     저녁:[{s:0,n:'강아지 산책',a:'건강',m:20,p:1,rep:true,rec:R_EX},
@@ -722,7 +724,7 @@ const PLAN={
           {s:1,n:'일기쓰기',a:'마음',m:10,p:3,rec:R_DIARY},
           {s:0,n:'저녁기도',a:'신앙',m:3,p:1,pray:true,note:'아이들과 함께'}]},
  0:{아침:[MORNING[0],MORNING[1],MORNING[2]],
-    오전:[{s:1,n:TODO_NAME,a:'업무',m:15,p:1,note:'주간 보드에서 다음 주 전체를 정리하는 날',todo:true}],
+    오전:[WEEKEND_FAITH,{s:1,n:TODO_NAME,a:'업무',m:15,p:1,note:'주간 보드에서 다음 주 전체를 정리하는 날',todo:true}],
     오후:[],
     저녁:[{s:0,n:'강아지 산책',a:'건강',m:20,p:1,rep:true,rec:R_EX},
           {s:1,n:'독서',a:'성장',m:20,p:3,rec:R_READ},
@@ -2655,6 +2657,14 @@ function normalize(d){
   }
   ['morning','evening','salve'].forEach(k=>{if(!o.prayers[k]&&typeof DEFAULT_PRAYERS!=='undefined'){o.prayers[k]=DEFAULT_PRAYERS[k];o._dirty=true}});
   if(!o.routine||!o.routine.wd)o.routine=defaultRoutine(o.stage||1);
+  if((o.rtVer||0)<1){                              // 주말 오전에 '가톨릭신문 · 매일주보' 추가 (한 번만 — 지우면 다시 안 생김)
+    ['sat','sun'].forEach(dt=>{
+      const r=o.routine[dt];if(!r)return;
+      const has=Object.keys(r).some(b=>(r[b]||[]).some(x=>(x.k||x.n)===WEEKEND_FAITH.n));
+      if(!has)(r['오전']=r['오전']||[]).unshift(copyItem(WEEKEND_FAITH));
+    });
+    o.rtVer=1;o._dirty=true;
+  }
   if(!Array.isArray(o.tpls))o.tpls=defaultTpls();
   if((o.tplVer||1)<TPL_VER){
     const OLD=['제안서 작성','행사 운영 준비','결과보고서','주간 정기 업무'];
