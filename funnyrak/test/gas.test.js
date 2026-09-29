@@ -132,3 +132,22 @@ test('wcollectDaily — 오늘 이미 수집했으면 건너뛰고, 아니면 �
   assert.equal(env.run('wcollectDaily()'), 1);
   assert.equal(env.puts, 1);
 });
+
+const INST = ['한국고용정보원', '한국노동연구원', '한국직업능력연구원', '한국교육개발원', '한국청소년정책연구원'];
+const instHits = env => INST.filter(n => env.urls.some(u => decodeURIComponent(u).indexOf('"' + n + '"') > -1));
+
+test('연구기관은 토 · 일에만 · 키워드 · 전문지 · 보도자료는 매일', () => {
+  // 2026-10-02 금 / 10-03 토 / 10-04 일 / 10-05 월 — 한국 시각 07:00
+  const days = [['금', 2, false], ['토', 3, true], ['일', 4, true], ['월', 5, false]];
+  for (const [name, dd, weekend] of days) {
+    const t = Date.UTC(2026, 9, dd, 7) - 9 * 3600e3;
+    const env = createEnv({ data: { inbox: [], inboxDone: {} }, fetch: () => [200, rss([])] });
+    env.run(`Date.now = () => ${t}`);
+    env.run('wcollectRun()');
+    const dec = env.urls.map(decodeURIComponent);
+    assert.equal(instHits(env).length, weekend ? INST.length : 0, name + '요일 연구기관');
+    assert.ok(dec.some(u => u.indexOf('대학 취업 프로그램 운영') > -1), name + '요일 키워드 뉴스');
+    assert.ok(dec.some(u => u.indexOf('site:korea.kr') > -1), name + '요일 보도자료');
+    assert.equal(mediaHits(env).length, 1, name + '요일 전문지');
+  }
+});

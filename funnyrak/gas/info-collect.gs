@@ -15,19 +15,21 @@
  *       wcollectReset ▶ — '새로 들어온 것'을 모두 비우기 (비운 기사는 다시 들어오지 않음)
  *
  * 매일 구성: 키워드 뉴스 중심 + 전문지는 하루에 한 곳씩 돌아가며(7곳 → 일주일에 한 번씩, 지난 7일치)
- *            + 정책 보도자료 · 연구기관 소식 조금
+ *            + 정책 보도자료
+ * 토 · 일:    위에 더해 연구기관 소식 (지난 7일치 — 한 주 몰아보기)
  * 자동 실행: 7시에 수집하고, 7시 실행이 실패했으면 9시에 한 번 더 시도 (이미 수집한 날은 건너뜀)
  */
 
 const WCOL = {
   HOUR: 7,               // 매일 수집 시각
   RETRY_HOUR: 9,         // 7시 수집이 실패한 날 다시 시도하는 시각
-  DAYS_NEWS: 1,          // 키워드 뉴스 · 보도자료 · 연구기관: 최근 24시간
+  DAYS_NEWS: 1,          // 키워드 뉴스 · 보도자료: 최근 24시간
+  DAYS_INST: 7,          // 연구기관: 토 · 일에만, 최근 7일
   DAYS_MEDIA: 7,         // 전문지: 오늘 차례인 한 곳의 최근 7일 (7곳을 돌아가며 → 매체마다 일주일에 한 번)
   MEDIA_MAX: 10,         // 오늘 차례 전문지에서 최대
   PER_QUERY: 4,          // 검색어 하나당 최대
   INBOX_MAX: 50,         // '새로 들어온 것' 최대
-  QUOTA: { '뉴스·키워드': 30, '전문지·신문': 10, '정책·보도자료': 5, '연구기관': 5 },   // 하루 분류별 자리 (남으면 다른 분류가 채움)
+  QUOTA: { '뉴스·키워드': 30, '전문지·신문': 10, '정책·보도자료': 8, '연구기관': 10 },   // 하루 분류별 자리 (남으면 다른 분류가 채움)
   INBOX_DAYS: 14,        // 손대지 않은 건 며칠 뒤 정리
   QUERIES: [
     // [검색어, 렌즈, 주제]
@@ -75,7 +77,7 @@ const WCOL = {
     ['에듀프레스', 'site:edupress.kr'],
     ['에듀인뉴스', 'site:edunnews.co.kr']
   ],
-  // 연구기관 — 기관의 조사·연구 결과를 다룬 기사
+  // 연구기관 — 기관의 조사·연구 결과를 다룬 기사 (토 · 일에만 수집)
   INSTITUTES: [
     ['한국고용정보원', '"한국고용정보원"'],
     ['한국노동연구원', '"한국노동연구원"'],
@@ -131,7 +133,7 @@ function wcollectCheck() {
   } catch (e) {
     out.push('앱 연결 실패 — ' + e.message);
   }
-  out.push(`오늘의 전문지: ${wcolMediaToday_()[0]}`);
+  out.push(`오늘의 전문지: ${wcolMediaToday_()[0]}` + (wcolWeekend_() ? ' · 오늘은 연구기관 소식도 수집' : ''));
   const msg = out.join('\n');
   console.log(msg);
   return msg;
@@ -171,7 +173,7 @@ function wcollectRun() {
   });
   bySource(WCOL.POLICY, '정책·보도자료', true, 8, WCOL.DAYS_NEWS);
   bySource([wcolMediaToday_()], '전문지·신문', true, WCOL.MEDIA_MAX, WCOL.DAYS_MEDIA);   // 하루 한 곳씩 돌아가며
-  bySource(WCOL.INSTITUTES, '연구기관', false, 4, WCOL.DAYS_NEWS);
+  if (wcolWeekend_()) bySource(WCOL.INSTITUTES, '연구기관', false, 4, WCOL.DAYS_INST);   // 토 · 일에만
 
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
@@ -228,6 +230,7 @@ function wcollectRun() {
 
 /* ---------- 날짜 · 전문지 순번 ---------- */
 function wcolDay_(ts) { return Math.floor((ts + 9 * 3600e3) / 864e5); }          // 한국 날짜 기준 날 번호
+function wcolWeekend_() { const w = new Date(Date.now() + 9 * 3600e3).getUTCDay(); return w === 0 || w === 6; }
 function wcolMediaToday_() { return WCOL.MEDIA[wcolDay_(Date.now()) % WCOL.MEDIA.length]; }
 
 /* ---------- 가져오기 ---------- */
