@@ -3,13 +3,15 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { CameraCapture } from "./camera";
+import { PropButtons, PropEditor } from "./prop-editor";
 import {
   DEFAULT_PLACEMENT,
   DEFAULT_STYLE,
   FILTERS,
   PHOTO_SIZE,
   PROPS,
-  renderFace,
+  applyFilter,
+  composeFace,
   type FaceStyle,
   type Placement,
 } from "@/lib/future-card/faces";
@@ -38,9 +40,14 @@ export function FutureCardStudio({ brand = "kmou" }: { brand?: BrandId }) {
   const [info, setInfo] = useState<CardInfo>(EMPTY_INFO);
   const [design, setDesign] = useState<CardDesignId>(firstDesign);
 
+  // 필터는 무거워서 따로 기억해 두고, 소품을 옮길 때는 소품만 다시 그립니다.
+  const filtered = useMemo(
+    () => (prepared ? applyFilter(prepared.photo, faceStyle.filter, PHOTO_SIZE) : null),
+    [prepared, faceStyle.filter],
+  );
   const face = useMemo(
-    () => (prepared ? renderFace(prepared.photo, faceStyle, PHOTO_SIZE, prepared.geom, place) : null),
-    [prepared, faceStyle, place],
+    () => (prepared && filtered ? composeFace(filtered, faceStyle.prop, prepared.geom, place) : null),
+    [prepared, filtered, faceStyle.prop, place],
   );
 
   function go(next: number) {
@@ -186,63 +193,59 @@ function FaceStep(props: {
   onNext: () => void;
 }) {
   const { prepared, face, style, place, onStyle, onPlace } = props;
-  const faceUrl = useMemo(() => face.toDataURL("image/png"), [face]);
-  const thumb = (s: FaceStyle) => renderFace(prepared.photo, s, 180, prepared.geom, place).toDataURL("image/png");
+  // 필터 견본은 소품 없이, 소품 견본은 지금 필터 위에 (작게 만든 사진으로)
   const filterThumbs = useMemo(
-    () => FILTERS.map((f) => ({ ...f, url: thumb({ filter: f.id, prop: style.prop }) })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [prepared, style.prop, place],
+    () => FILTERS.map((f) => ({ ...f, url: applyFilter(prepared.photo, f.id, 180).toDataURL("image/png") })),
+    [prepared],
   );
+  const smallBase = useMemo(() => applyFilter(prepared.photo, style.filter, 180), [prepared, style.filter]);
+  // 소품을 고르면 위치가 처음으로 돌아가므로 견본도 처음 위치로 (끌 때마다 다시 그리지 않음)
   const propThumbs = useMemo(
-    () => PROPS.map((p) => ({ ...p, url: thumb({ filter: style.filter, prop: p.id }) })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [prepared, style.filter, place],
+    () =>
+      PROPS.map((p) => ({ ...p, url: composeFace(smallBase, p.id, prepared.geom, DEFAULT_PLACEMENT).toDataURL("image/png") })),
+    [smallBase, prepared],
   );
-  const nudge = (d: Partial<Placement>) =>
-    onPlace({
-      dy: clampNum(place.dy + (d.dy ?? 0), -0.18, 0.18),
-      scale: clampNum(place.scale + (d.scale ?? 0), 0.6, 1.6),
-    });
+  const hasProp = style.prop !== "none";
 
   return (
     <>
       <StepTitle
         label="Step 2"
         title="필터와 소품을 골라 주세요"
-        desc={`필터 ${FILTERS.length}가지 × 소품 ${PROPS.length}가지 — 고르는 대로 왼쪽 미리보기에 바로 반영됩니다.`}
+        desc={`필터 ${FILTERS.length}가지 × 소품 ${PROPS.length}가지 — 소품은 사진 위에서 직접 끌어 맞출 수 있어요.`}
       />
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,380px)_1fr]">
-        <div className="lg:sticky lg:top-24 lg:self-start">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={faceUrl} alt="선택한 스타일 미리보기" className={`aspect-square w-full rounded-3xl shadow-lg ${BACKDROP}`} />
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,400px)_1fr]">
+        <div className="mx-auto w-full max-w-md lg:sticky lg:top-24 lg:max-w-none lg:self-start">
+          <PropEditor
+            face={face}
+            place={place}
+            onPlace={onPlace}
+            editable={hasProp}
+            className={`aspect-square w-full rounded-3xl shadow-lg ${BACKDROP}`}
+          />
+          {hasProp && (
+            <p className="mt-2 rounded-xl bg-ocean-mist px-3 py-2 text-center text-xs font-bold text-navy">
+              ☝️ 소품을 끌어서 옮기고, ✌️ 두 손가락으로 크기 · 각도를 맞추세요
+            </p>
+          )}
+          {hasProp && !prepared.faceFound && (
+            <p className="mt-2 rounded-xl bg-sun/20 px-3 py-2 text-xs font-bold text-[#8A6A00]">
+              얼굴을 찾지 못해 소품이 기본 위치에 있어요. 끌어서 맞추거나 정면으로 다시 찍어 주세요.
+            </p>
+          )}
           {!prepared.cutout && (
             <p className="mt-2 rounded-xl bg-sun/20 px-3 py-2 text-xs font-bold text-[#8A6A00]">
               배경을 지우지 못했어요. 인터넷 연결을 확인하고 다시 찍어 주세요.
             </p>
           )}
+          {hasProp && (
+            <div className="card mt-3 p-3">
+              <PropButtons place={place} onPlace={onPlace} />
+            </div>
+          )}
           <button type="button" onClick={props.onRetake} className="btn-outline mt-3 w-full">
             📸 다시 찍기
           </button>
-
-          {style.prop !== "none" && (
-            <div className="card mt-3 p-4">
-              <p className="text-sm font-bold text-navy">소품 위치 맞추기</p>
-              <div className="mt-3 grid grid-cols-4 gap-2">
-                <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ dy: -0.015 })}>
-                  ▲ 위로
-                </button>
-                <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ dy: 0.015 })}>
-                  ▼ 아래로
-                </button>
-                <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ scale: -0.06 })}>
-                  － 작게
-                </button>
-                <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ scale: 0.06 })}>
-                  ＋ 크게
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="space-y-8">
@@ -256,7 +259,11 @@ function FaceStep(props: {
             title="🎩 소품"
             items={propThumbs.map((p) => ({ key: p.id, url: p.url, name: `${p.emoji} ${p.name}` }))}
             selected={style.prop}
-            onPick={(id) => onStyle({ ...style, prop: id as FaceStyle["prop"] })}
+            onPick={(id) => {
+              onStyle({ ...style, prop: id as FaceStyle["prop"] });
+              // 소품마다 맞는 자리가 달라 바꿀 때는 처음 위치에서 시작
+              onPlace(DEFAULT_PLACEMENT);
+            }}
           />
           <NavButtons onNext={props.onNext} nextLabel="다음 · 명함 내용 입력 →" />
         </div>
@@ -609,8 +616,4 @@ function CardPreview(props: { face: HTMLCanvasElement; info: CardInfo; design: C
 
 function withPlaceholders(info: CardInfo): CardInfo {
   return { ...info, name: info.name || "홍길동", company: info.company || "회사명" };
-}
-
-function clampNum(v: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, v));
 }

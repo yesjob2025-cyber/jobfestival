@@ -37,13 +37,15 @@ export const DEFAULT_GEOM: FaceGeom = {
   mouthY: 0.64,
 };
 
-/** 소품 위치 미세조정 — dy: 사진 높이 대비 이동, scale: 크기 배율 */
+/** 소품 위치 직접 조정 — dx · dy: 사진 한 변 대비 이동, scale: 크기 배율, rot: 추가 회전(라디안) */
 export interface Placement {
+  dx: number;
   dy: number;
   scale: number;
+  rot: number;
 }
 
-export const DEFAULT_PLACEMENT: Placement = { dy: 0, scale: 1 };
+export const DEFAULT_PLACEMENT: Placement = { dx: 0, dy: 0, scale: 1, rot: 0 };
 
 export const FILTERS = [
   { id: "natural", name: "내추럴", desc: "화사한 기본 보정" },
@@ -93,14 +95,29 @@ export function renderFace(
   geom: FaceGeom = DEFAULT_GEOM,
   place: Placement = DEFAULT_PLACEMENT,
 ): HTMLCanvasElement {
+  return composeFace(applyFilter(src, style.filter, size), style.prop, geom, place);
+}
+
+/** 필터만 입힌 사진 — 소품을 끌어 옮기는 동안에는 이것을 다시 쓰고 소품만 새로 그립니다. */
+export function applyFilter(src: HTMLCanvasElement, filter: FilterId, size: number): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   ctx.drawImage(src, 0, 0, size, size);
-  FILTER_FNS[style.filter](ctx, size);
-  if (style.prop !== "none") {
+  FILTER_FNS[filter](ctx, size);
+  return canvas;
+}
+
+/** 필터 입힌 사진 위에 소품을 그린 새 캔버스 */
+export function composeFace(base: HTMLCanvasElement, prop: PropId, geom: FaceGeom, place: Placement): HTMLCanvasElement {
+  const size = base.width;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(base, 0, 0);
+  if (prop !== "none") {
     ctx.save();
-    PROP_FNS[style.prop](enterFace(ctx, size, geom, place));
+    PROP_FNS[prop](enterFace(ctx, size, geom, place));
     ctx.restore();
   }
   return canvas;
@@ -296,8 +313,8 @@ interface Frame {
 
 function enterFace(ctx: Ctx, size: number, g: FaceGeom, place: Placement): Frame {
   const u = g.width * size * place.scale;
-  ctx.translate(g.cx * size, (g.eyeY + place.dy) * size);
-  ctx.rotate(g.roll);
+  ctx.translate((g.cx + place.dx) * size, (g.eyeY + place.dy) * size);
+  ctx.rotate(g.roll + place.rot);
   ctx.scale(u, u);
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
