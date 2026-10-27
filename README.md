@@ -76,7 +76,7 @@ npm run build    # 프로덕션 빌드
 - **배경 제거 · 얼굴 위치**: Google MediaPipe 모델(`public/models/*.tflite`)을 브라우저에서 실행합니다.
   실행 파일(wasm, 약 23MB)은 `npm run dev` · `npm run build` 때 `scripts/copy-mediapipe.mjs` 가 `public/mediapipe/` 로 복사합니다 (저장소에는 없음).
 - **얼굴 스타일**: 필터 12종 × 소품 12종. 소품은 찾은 얼굴 위치에 맞춰 그려지고 ▲▼ · ＋－ 로 조정합니다.
-- **휴대폰으로 받기 (QR)**: 완성 명함(JPEG)을 `/api/card` 로 Vercel Blob 에 올리고 QR 을 보여 줍니다.
+- **휴대폰으로 받기 (QR)**: 완성 명함(JPEG)을 `/api/card` 로 Vercel Blob **비공개** 저장소에 올리고 QR 을 보여 줍니다. 이미지는 `/api/card/[id]` 로만 보여 줍니다.
   QR 을 찍으면 `/kdu/card` 에서 저장 · 공유할 수 있으며, 3일 지난 이미지는 매일 `/api/card/cleanup` 크론이 지웁니다.
 
 | 파일 | 내용 |
@@ -90,8 +90,8 @@ npm run build    # 프로덕션 빌드
 | `src/lib/future-card/share.ts` | QR 받기 (업로드 · 받기 주소) |
 | `src/components/future-card/` | 단계별 화면 (두 행사가 함께 사용) |
 
-**QR 받기 설정 (최초 1회)**: Vercel 대시보드 → 프로젝트 → **Storage → Create → Blob** 으로 저장소를 만들고 이 프로젝트에 연결하면
-`BLOB_READ_WRITE_TOKEN` 환경변수가 자동으로 추가됩니다. 그 뒤 **Redeploy** 하면 켜집니다. (설정 전에는 QR 버튼이 안내 문구를 띄웁니다)
+**QR 받기 설정 (최초 1회, 완료됨 — `jobfestival-blob`)**: Vercel 대시보드 → **Storage → Create → Blob (Private)** 으로 저장소를 만들고 이 프로젝트에 연결하면
+`BLOB_READ_WRITE_TOKEN`(또는 `BLOB_STORE_ID`) 환경변수가 자동으로 추가됩니다. 연결 뒤 새로 배포해야 켜집니다. (설정 전에는 QR 버튼이 안내 문구를 띄웁니다)
 
 부스 운영 팁: 한 분이 끝나면 **‘다음 분 시작하기’** 를 눌러 사진과 입력을 지웁니다.
 

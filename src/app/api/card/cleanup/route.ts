@@ -1,6 +1,7 @@
 // 하루 한 번(vercel.json crons) 올린 지 3일이 지난 명함 이미지를 지웁니다.
 
 import { del, list } from "@vercel/blob";
+import { blobConfigured } from "@/lib/future-card/blob";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
   if (secret && req.headers.get("authorization") !== `Bearer ${secret}`) {
     return new Response("unauthorized", { status: 401 });
   }
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return Response.json({ deleted: 0 });
+  if (!blobConfigured()) return Response.json({ deleted: 0 });
 
   const cutoff = Date.now() - KEEP_MS;
   let cursor: string | undefined;

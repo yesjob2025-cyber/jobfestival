@@ -1,14 +1,15 @@
-// 완성된 미래 명함 이미지를 올려 두고 주소를 돌려줍니다 → 화면의 QR 로 각자 휴대폰에서 받기.
-// 저장소: Vercel Blob (BLOB_READ_WRITE_TOKEN). 3일이 지난 파일은 cleanup 이 지웁니다.
+// 완성된 미래 명함 이미지를 올려 두고 ID 를 돌려줍니다 → 화면의 QR 로 각자 휴대폰에서 받기.
+// 저장소: Vercel Blob (비공개). 이미지는 /api/card/[id] 로만 보여 주고, 3일이 지나면 cleanup 이 지웁니다.
 
 import { put } from "@vercel/blob";
+import { blobConfigured, cardPath, newCardId } from "@/lib/future-card/blob";
 
 export const runtime = "nodejs";
 
 const MAX_BYTES = 3_500_000;
 
 export async function POST(req: Request) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!blobConfigured()) {
     return Response.json({ error: "not-configured" }, { status: 503 });
   }
 
@@ -21,11 +22,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "type" }, { status: 415 });
   }
 
-  const id = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
-  const blob = await put(`cards/${id}.jpg`, Buffer.from(body), {
-    access: "public",
+  const id = newCardId();
+  await put(cardPath(id), Buffer.from(body), {
+    access: "private",
     contentType: "image/jpeg",
     addRandomSuffix: false,
   });
-  return Response.json({ url: blob.url });
+  return Response.json({ id });
 }

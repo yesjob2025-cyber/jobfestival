@@ -9,9 +9,9 @@ export const metadata: Metadata = {
 };
 
 /** 부스 화면의 QR 을 찍으면 열리는 페이지 — 내 휴대폰에 명함 저장 · 공유 */
-export default async function ReceiveCardPage({ searchParams }: { searchParams: Promise<{ s?: string; f?: string }> }) {
-  const { s, f } = await searchParams;
-  const src = cardImageUrl(s, f);
+export default async function ReceiveCardPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
+  const { id } = await searchParams;
+  const src = cardImageUrl(id);
 
   return (
     <section className="wrap max-w-2xl py-10">
