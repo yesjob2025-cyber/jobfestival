@@ -112,6 +112,9 @@ export default function HomePage() {
                 <li key={e.name}>· {e.name}</li>
               ))}
             </ul>
+            <Link href="/future-card" className="mt-4 inline-block text-sm font-bold text-ocean">
+              📸 10년 후 나의 미래 명함 만들기 →
+            </Link>
           </div>
         </div>
       </section>

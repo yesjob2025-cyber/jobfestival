@@ -20,6 +20,9 @@ export function SiteHeader() {
         </Link>
 
         <nav className="flex items-center gap-1.5">
+          <Link href="/future-card" className="btn-sun btn-sm">
+            미래 명함
+          </Link>
           <Link href="/program" className="btn-outline btn-sm hidden sm:inline-flex">
             행사 프로그램
           </Link>
