@@ -483,12 +483,15 @@ function ResultStep(props: { face: HTMLCanvasElement; info: CardInfo; design: Ca
   return (
     <>
       <StepTitle label="Step 5" title={`${props.info.name}님의 ${futureYear(brand)}년 명함이 나왔어요! 🎉`} />
-      <style>{`@media print {
+      {/* 휴대폰으로 받는 행사는 저장 · 인쇄 없이 QR 만 */}
+      {!brand.receivePath && (
+        <style>{`@media print {
         @page { size: 90mm 50mm; margin: 0; }
         body * { visibility: hidden !important; }
         #future-card-print, #future-card-print * { visibility: visible !important; }
         #future-card-print { position: fixed; top: 0; left: 0; width: 90mm; height: 50mm; }
       }`}</style>
+      )}
 
       <div className="mx-auto max-w-4xl">
         {url ? (
@@ -501,12 +504,16 @@ function ResultStep(props: { face: HTMLCanvasElement; info: CardInfo; design: Ca
         {brand.receivePath && <SendToPhone {...props} receivePath={brand.receivePath} />}
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
-          <button type="button" onClick={download} disabled={!url} className="btn-primary py-4 text-base">
-            ⬇️ 이미지 저장 (PNG)
-          </button>
-          <button type="button" onClick={() => window.print()} disabled={!url} className="btn-outline py-4 text-base">
-            🖨️ 인쇄하기 (90×50mm)
-          </button>
+          {!brand.receivePath && (
+            <>
+              <button type="button" onClick={download} disabled={!url} className="btn-primary py-4 text-base">
+                ⬇️ 이미지 저장 (PNG)
+              </button>
+              <button type="button" onClick={() => window.print()} disabled={!url} className="btn-outline py-4 text-base">
+                🖨️ 인쇄하기 (90×50mm)
+              </button>
+            </>
+          )}
           <button type="button" onClick={props.onBack} className="btn-outline py-4">
             ← 디자인 다시 고르기
           </button>
@@ -575,7 +582,7 @@ function SendToPhone(props: { face: HTMLCanvasElement; info: CardInfo; design: C
           )}
           {state === "off" && (
             <p className="mt-3 text-sm font-bold text-[#C0392B]">
-              QR 받기가 아직 설정되지 않았어요. (Vercel Blob 저장소 연결 필요) 이미지 저장 · 인쇄를 이용해 주세요.
+              QR 받기가 아직 설정되지 않았어요. 부스 담당자에게 알려 주세요. (Vercel Blob 저장소 연결 필요)
             </p>
           )}
           <p className="mt-3 text-xs text-ink-muted">
