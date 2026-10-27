@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FACE_GUIDE, PHOTO_SIZE } from "@/lib/future-card/faces";
+import { preloadVision } from "@/lib/future-card/vision";
 
 type Facing = "user" | "environment";
 
@@ -13,6 +14,11 @@ export function CameraCapture({ onCapture }: { onCapture: (photo: HTMLCanvasElem
   const [error, setError] = useState("");
   const [count, setCount] = useState(0);
   const [flash, setFlash] = useState(false);
+
+  // 배경 제거 모델을 미리 받아 두면 찍은 직후 바로 처리됩니다.
+  useEffect(() => {
+    preloadVision().catch(() => {});
+  }, []);
 
   useEffect(() => {
     let stream: MediaStream | undefined;
@@ -175,7 +181,7 @@ export function CameraCapture({ onCapture }: { onCapture: (photo: HTMLCanvasElem
       </label>
 
       <p className="mt-4 text-center text-xs text-ink-muted">
-        사진은 이 기기 안에서만 처리되며 서버로 전송 · 저장되지 않습니다.
+        사진은 이 기기 안에서 처리됩니다. ‘휴대폰으로 받기’를 누를 때만 완성 명함이 서버에 3일간 보관됩니다.
       </p>
     </div>
   );

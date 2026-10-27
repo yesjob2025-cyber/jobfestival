@@ -4,17 +4,23 @@
   "private": true,
   "description": "2026 국립한국해양대학교(KMOU) 취업박람회 홈페이지 (jobfestival.co.kr)",
   "scripts": {
+    "predev": "node scripts/copy-mediapipe.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-mediapipe.mjs",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "1.0.1",
+    "@vercel/blob": "2.8.1",
     "next": "15.5.20",
+    "qrcode": "1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/qrcode": "1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",

@@ -1,19 +1,23 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import QRCode from "qrcode";
 import { CameraCapture } from "./camera";
 import {
   DEFAULT_PLACEMENT,
-  FACE_STYLES,
+  DEFAULT_STYLE,
+  FILTERS,
   PHOTO_SIZE,
-  hasAccessory,
+  PROPS,
   renderFace,
-  type FaceStyleId,
+  type FaceStyle,
   type Placement,
 } from "@/lib/future-card/faces";
-import { CARD_DESIGNS, ensureFonts, renderCard, type CardDesignId } from "@/lib/future-card/cards";
+import { CARD_DESIGN_NAMES, ensureAssets, renderCard, type CardDesignId } from "@/lib/future-card/cards";
 import { BRANDS, futureYear, type BrandId, type FutureCardBrand } from "@/lib/future-card/brand";
 import { EMPTY_INFO, RANKS, randomInfo, type CardInfo } from "@/lib/future-card/presets";
+import { uploadCard } from "@/lib/future-card/share";
+import { preparePhoto, type PreparedPhoto } from "@/lib/future-card/vision";
 
 const STEPS = ["사진 촬영", "얼굴 스타일", "명함 내용", "명함 디자인", "완성"] as const;
 
@@ -21,17 +25,22 @@ const STEPS = ["사진 촬영", "얼굴 스타일", "명함 내용", "명함 디
 const BrandContext = createContext<FutureCardBrand>(BRANDS.kmou);
 const useBrand = () => useContext(BrandContext);
 
+/** 투명 배경 사진 뒤에 깔리는 미리보기 바탕 */
+const BACKDROP = "bg-[linear-gradient(180deg,#E3F5FE,#BFE6FB)]";
+
 export function FutureCardStudio({ brand = "kmou" }: { brand?: BrandId }) {
+  const firstDesign = BRANDS[brand].designs[0];
   const [step, setStep] = useState(0);
-  const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null);
-  const [faceStyle, setFaceStyle] = useState<FaceStyleId>("natural");
+  const [prepared, setPrepared] = useState<PreparedPhoto | null>(null);
+  const [processing, setProcessing] = useState(false);
+  const [faceStyle, setFaceStyle] = useState<FaceStyle>(DEFAULT_STYLE);
   const [place, setPlace] = useState<Placement>(DEFAULT_PLACEMENT);
   const [info, setInfo] = useState<CardInfo>(EMPTY_INFO);
-  const [design, setDesign] = useState<CardDesignId>("navy");
+  const [design, setDesign] = useState<CardDesignId>(firstDesign);
 
   const face = useMemo(
-    () => (photo ? renderFace(photo, faceStyle, PHOTO_SIZE, place) : null),
-    [photo, faceStyle, place],
+    () => (prepared ? renderFace(prepared.photo, faceStyle, PHOTO_SIZE, prepared.geom, place) : null),
+    [prepared, faceStyle, place],
   );
 
   function go(next: number) {
@@ -41,12 +50,22 @@ export function FutureCardStudio({ brand = "kmou" }: { brand?: BrandId }) {
 
   /** 다음 방문객을 위해 모든 입력을 지웁니다. */
   function reset() {
-    setPhoto(null);
-    setFaceStyle("natural");
+    setPrepared(null);
+    setFaceStyle(DEFAULT_STYLE);
     setPlace(DEFAULT_PLACEMENT);
     setInfo(EMPTY_INFO);
-    setDesign("navy");
+    setDesign(firstDesign);
     go(0);
+  }
+
+  /** 찍은 사진의 배경을 지우고 얼굴 위치를 찾은 뒤 2단계로 */
+  async function onCapture(c: HTMLCanvasElement) {
+    setProcessing(true);
+    const p = await preparePhoto(c);
+    setPrepared(p);
+    setPlace(DEFAULT_PLACEMENT);
+    setProcessing(false);
+    go(1);
   }
 
   return (
@@ -55,21 +74,22 @@ export function FutureCardStudio({ brand = "kmou" }: { brand?: BrandId }) {
         <Stepper step={step} onJump={go} />
 
         <div className="mt-8">
-          {step === 0 && (
-            <CameraCapture
-              onCapture={(c) => {
-                setPhoto(c);
-                setPlace(DEFAULT_PLACEMENT);
-                go(1);
-              }}
-            />
-          )}
+          {step === 0 &&
+            (processing ? (
+              <div className="mx-auto flex aspect-square max-w-xl flex-col items-center justify-center gap-4 rounded-3xl bg-ocean-mist text-center">
+                <span className="h-14 w-14 animate-spin rounded-full border-[6px] border-ocean/30 border-t-ocean" />
+                <p className="text-lg font-extrabold text-navy">배경을 지우고 있어요…</p>
+                <p className="text-sm text-ink-muted">처음 한 번은 몇 초 걸릴 수 있어요</p>
+              </div>
+            ) : (
+              <CameraCapture onCapture={onCapture} />
+            ))}
 
-          {step === 1 && photo && face && (
+          {step === 1 && prepared && face && (
             <FaceStep
-              photo={photo}
+              prepared={prepared}
               face={face}
-              styleId={faceStyle}
+              style={faceStyle}
               place={place}
               onStyle={setFaceStyle}
               onPlace={setPlace}
@@ -156,41 +176,57 @@ function NavButtons({ onBack, onNext, nextLabel, disabled }: { onBack?: () => vo
 // ── 2단계: 얼굴 스타일 ─────────────────────────────────────────
 
 function FaceStep(props: {
-  photo: HTMLCanvasElement;
+  prepared: PreparedPhoto;
   face: HTMLCanvasElement;
-  styleId: FaceStyleId;
+  style: FaceStyle;
   place: Placement;
-  onStyle: (id: FaceStyleId) => void;
+  onStyle: (s: FaceStyle) => void;
   onPlace: (p: Placement) => void;
   onRetake: () => void;
   onNext: () => void;
 }) {
-  const { photo, face, styleId, place, onStyle, onPlace } = props;
-  const faceUrl = useMemo(() => face.toDataURL("image/jpeg", 0.9), [face]);
-  const thumbs = useMemo(
-    () => FACE_STYLES.map((s) => ({ ...s, url: renderFace(photo, s.id, 200, place).toDataURL("image/jpeg", 0.85) })),
-    [photo, place],
+  const { prepared, face, style, place, onStyle, onPlace } = props;
+  const faceUrl = useMemo(() => face.toDataURL("image/png"), [face]);
+  const thumb = (s: FaceStyle) => renderFace(prepared.photo, s, 180, prepared.geom, place).toDataURL("image/png");
+  const filterThumbs = useMemo(
+    () => FILTERS.map((f) => ({ ...f, url: thumb({ filter: f.id, prop: style.prop }) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [prepared, style.prop, place],
+  );
+  const propThumbs = useMemo(
+    () => PROPS.map((p) => ({ ...p, url: thumb({ filter: style.filter, prop: p.id }) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [prepared, style.filter, place],
   );
   const nudge = (d: Partial<Placement>) =>
     onPlace({
       dy: clampNum(place.dy + (d.dy ?? 0), -0.18, 0.18),
-      scale: clampNum(place.scale + (d.scale ?? 0), 0.7, 1.4),
+      scale: clampNum(place.scale + (d.scale ?? 0), 0.6, 1.6),
     });
 
   return (
     <>
-      <StepTitle label="Step 2" title="얼굴 스타일을 골라 주세요" desc="10가지 중 하나를 고르면 왼쪽 미리보기에 바로 반영됩니다." />
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,400px)_1fr]">
-        <div>
+      <StepTitle
+        label="Step 2"
+        title="필터와 소품을 골라 주세요"
+        desc={`필터 ${FILTERS.length}가지 × 소품 ${PROPS.length}가지 — 고르는 대로 왼쪽 미리보기에 바로 반영됩니다.`}
+      />
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,380px)_1fr]">
+        <div className="lg:sticky lg:top-24 lg:self-start">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={faceUrl} alt="선택한 스타일 미리보기" className="aspect-square w-full rounded-3xl object-cover shadow-lg" />
+          <img src={faceUrl} alt="선택한 스타일 미리보기" className={`aspect-square w-full rounded-3xl shadow-lg ${BACKDROP}`} />
+          {!prepared.cutout && (
+            <p className="mt-2 rounded-xl bg-sun/20 px-3 py-2 text-xs font-bold text-[#8A6A00]">
+              배경을 지우지 못했어요. 인터넷 연결을 확인하고 다시 찍어 주세요.
+            </p>
+          )}
           <button type="button" onClick={props.onRetake} className="btn-outline mt-3 w-full">
             📸 다시 찍기
           </button>
 
-          {hasAccessory(styleId) && (
+          {style.prop !== "none" && (
             <div className="card mt-3 p-4">
-              <p className="text-sm font-bold text-navy">액세서리 위치 맞추기</p>
+              <p className="text-sm font-bold text-navy">소품 위치 맞추기</p>
               <div className="mt-3 grid grid-cols-4 gap-2">
                 <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ dy: -0.015 })}>
                   ▲ 위로
@@ -198,10 +234,10 @@ function FaceStep(props: {
                 <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ dy: 0.015 })}>
                   ▼ 아래로
                 </button>
-                <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ scale: -0.05 })}>
+                <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ scale: -0.06 })}>
                   － 작게
                 </button>
-                <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ scale: 0.05 })}>
+                <button type="button" className="btn-outline btn-sm py-3" onClick={() => nudge({ scale: 0.06 })}>
                   ＋ 크게
                 </button>
               </div>
@@ -209,35 +245,60 @@ function FaceStep(props: {
           )}
         </div>
 
-        <div>
-          <ul className="grid grid-cols-3 gap-3 sm:grid-cols-5">
-            {thumbs.map((s) => {
-              const on = s.id === styleId;
-              return (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => onStyle(s.id)}
-                    className={`w-full overflow-hidden rounded-2xl border-2 bg-white text-left transition ${
-                      on ? "border-ocean ring-4 ring-ocean/20" : "border-ink-line hover:border-ocean/50"
-                    }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.url} alt="" className="aspect-square w-full object-cover" />
-                    <span className="block px-2.5 py-2">
-                      <span className="block text-sm font-extrabold text-navy">{s.name}</span>
-                      <span className="block truncate text-[11px] text-ink-muted">{s.desc}</span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+        <div className="space-y-8">
+          <ThumbGrid
+            title="🎨 필터"
+            items={filterThumbs.map((f) => ({ key: f.id, url: f.url, name: f.name, desc: f.desc }))}
+            selected={style.filter}
+            onPick={(id) => onStyle({ ...style, filter: id as FaceStyle["filter"] })}
+          />
+          <ThumbGrid
+            title="🎩 소품"
+            items={propThumbs.map((p) => ({ key: p.id, url: p.url, name: `${p.emoji} ${p.name}` }))}
+            selected={style.prop}
+            onPick={(id) => onStyle({ ...style, prop: id as FaceStyle["prop"] })}
+          />
           <NavButtons onNext={props.onNext} nextLabel="다음 · 명함 내용 입력 →" />
         </div>
       </div>
     </>
+  );
+}
+
+function ThumbGrid(props: {
+  title: string;
+  items: { key: string; url: string; name: string; desc?: string }[];
+  selected: string;
+  onPick: (key: string) => void;
+}) {
+  return (
+    <section>
+      <h3 className="mb-3 text-lg font-extrabold text-navy">{props.title}</h3>
+      <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 xl:grid-cols-6">
+        {props.items.map((it) => {
+          const on = it.key === props.selected;
+          return (
+            <li key={it.key}>
+              <button
+                type="button"
+                aria-pressed={on}
+                onClick={() => props.onPick(it.key)}
+                className={`w-full overflow-hidden rounded-2xl border-2 bg-white text-left transition ${
+                  on ? "border-ocean ring-4 ring-ocean/20" : "border-ink-line hover:border-ocean/50"
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={it.url} alt="" className={`aspect-square w-full ${BACKDROP}`} />
+                <span className="block px-2 py-1.5">
+                  <span className="block truncate text-[13px] font-extrabold text-navy">{it.name}</span>
+                  {it.desc && <span className="block truncate text-[10px] text-ink-muted">{it.desc}</span>}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -288,7 +349,7 @@ function InfoStep(props: {
             </select>
           </div>
 
-          <Field label="부서 · 직무" value={info.dept} onChange={set("dept")} placeholder="해운영업본부" />
+          <Field label="부서 · 직무" value={info.dept} onChange={set("dept")} placeholder={brand.depts[0]} />
 
           <div className="grid gap-5 sm:grid-cols-2">
             <div>
@@ -301,7 +362,7 @@ function InfoStep(props: {
             </div>
           </div>
 
-          <Field label="나의 한마디" value={info.slogan} onChange={set("slogan")} placeholder="바다처럼 넓게, 파도처럼 힘차게" maxLength={30} />
+          <Field label="나의 한마디" value={info.slogan} onChange={set("slogan")} placeholder={brand.slogans[0]} maxLength={30} />
 
           <button type="button" onClick={() => onChange(randomInfo(brand, info))} className="btn-sun w-full py-3.5">
             🎲 회사 · 직무 · 직급 랜덤 추천
@@ -363,29 +424,30 @@ function DesignStep(props: {
   onBack: () => void;
   onNext: () => void;
 }) {
+  const brand = useBrand();
   return (
     <>
-      <StepTitle label="Step 4" title="명함 디자인을 골라 주세요" />
+      <StepTitle label="Step 4" title="명함 디자인을 골라 주세요" desc={`${brand.designs.length}가지 디자인 중 마음에 드는 것을 고르세요.`} />
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
         <div>
           <CardPreview face={props.face} info={props.info} design={props.design} scale={0.6} className="shadow-xl" />
           <NavButtons onBack={props.onBack} onNext={props.onNext} nextLabel="✨ 명함 만들기" />
         </div>
         <ul className="grid grid-cols-2 gap-3 self-start">
-          {CARD_DESIGNS.map((d) => {
-            const on = d.id === props.design;
+          {brand.designs.map((id) => {
+            const on = id === props.design;
             return (
-              <li key={d.id}>
+              <li key={id}>
                 <button
                   type="button"
                   aria-pressed={on}
-                  onClick={() => props.onDesign(d.id)}
+                  onClick={() => props.onDesign(id)}
                   className={`w-full rounded-2xl border-2 bg-white p-2 text-left transition ${
                     on ? "border-ocean ring-4 ring-ocean/20" : "border-ink-line hover:border-ocean/50"
                   }`}
                 >
-                  <CardPreview face={props.face} info={props.info} design={d.id} scale={0.25} />
-                  <span className="mt-2 block px-1 text-sm font-extrabold text-navy">{d.name}</span>
+                  <CardPreview face={props.face} info={props.info} design={id} scale={0.25} />
+                  <span className="mt-2 block px-1 text-sm font-extrabold text-navy">{CARD_DESIGN_NAMES[id]}</span>
                 </button>
               </li>
             );
@@ -429,6 +491,8 @@ function ResultStep(props: { face: HTMLCanvasElement; info: CardInfo; design: Ca
           <div className="aspect-[9/5] w-full animate-pulse rounded-2xl bg-ink-bg" />
         )}
 
+        {brand.receivePath && <SendToPhone {...props} receivePath={brand.receivePath} />}
+
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           <button type="button" onClick={download} disabled={!url} className="btn-primary py-4 text-base">
             ⬇️ 이미지 저장 (PNG)
@@ -451,6 +515,71 @@ function ResultStep(props: { face: HTMLCanvasElement; info: CardInfo; design: Ca
   );
 }
 
+/** 완성 명함을 올리고 QR 을 보여 줍니다 → 방문객이 자기 휴대폰 카메라로 찍어 받기 */
+function SendToPhone(props: { face: HTMLCanvasElement; info: CardInfo; design: CardDesignId; receivePath: string }) {
+  const brand = useBrand();
+  const [state, setState] = useState<"idle" | "sending" | "done" | "error" | "off">("idle");
+  const [qr, setQr] = useState("");
+
+  // 디자인이나 내용이 바뀌면 다시 보내야 합니다.
+  useEffect(() => {
+    setState("idle");
+    setQr("");
+  }, [props.face, props.info, props.design]);
+
+  async function send() {
+    setState("sending");
+    try {
+      await ensureAssets(props.info, brand);
+      const link = await uploadCard(renderCard(props.face, props.info, props.design, brand, 1), props.receivePath);
+      setQr(await QRCode.toDataURL(link, { width: 480, margin: 1, color: { dark: "#0B2A78" } }));
+      setState("done");
+    } catch (e) {
+      setState(e instanceof Error && e.message === "not-configured" ? "off" : "error");
+    }
+  }
+
+  return (
+    <div className="mt-8 rounded-3xl border-2 border-ocean/30 bg-ocean-mist p-5 text-center sm:p-6">
+      {state === "done" ? (
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:text-left">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={qr} alt="명함 받기 QR 코드" className="h-56 w-56 shrink-0 rounded-2xl bg-white p-3 shadow-lg" />
+          <div>
+            <p className="text-2xl font-black text-navy">📱 휴대폰 카메라로 QR을 찍으세요!</p>
+            <p className="mt-2 text-sm font-semibold text-ink-soft">
+              열린 페이지에서 ‘사진으로 저장’이나 ‘카톡 · 문자로 보내기’를 누르면 내 명함을 가져갈 수 있어요.
+            </p>
+            <p className="mt-2 text-xs text-ink-muted">명함 이미지는 3일 뒤 자동으로 지워집니다.</p>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={send}
+            disabled={state === "sending"}
+            className="btn-primary w-full py-5 text-lg disabled:opacity-60"
+          >
+            {state === "sending" ? "QR 만드는 중…" : "📱 내 휴대폰으로 받기 (QR)"}
+          </button>
+          {state === "error" && (
+            <p className="mt-3 text-sm font-bold text-[#C0392B]">보내지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.</p>
+          )}
+          {state === "off" && (
+            <p className="mt-3 text-sm font-bold text-[#C0392B]">
+              QR 받기가 아직 설정되지 않았어요. (Vercel Blob 저장소 연결 필요) 이미지 저장 · 인쇄를 이용해 주세요.
+            </p>
+          )}
+          <p className="mt-3 text-xs text-ink-muted">
+            누르면 완성된 명함 이미지가 서버에 올라가며, 3일 뒤 자동으로 지워집니다.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── 공통 ────────────────────────────────────────────────────
 
 function useCardUrl(face: HTMLCanvasElement, info: CardInfo, design: CardDesignId, scale: number) {
@@ -458,7 +587,7 @@ function useCardUrl(face: HTMLCanvasElement, info: CardInfo, design: CardDesignI
   const [url, setUrl] = useState("");
   useEffect(() => {
     let alive = true;
-    ensureFonts(info, brand).then(() => {
+    ensureAssets(info, brand).then(() => {
       if (alive) setUrl(renderCard(face, info, design, brand, scale).toDataURL("image/png"));
     });
     return () => {

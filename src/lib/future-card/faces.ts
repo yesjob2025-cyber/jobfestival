@@ -1,9 +1,9 @@
 // ─────────────────────────────────────────────────────────────
-// 미래 명함 — 얼굴 스타일 10종
+// 미래 명함 — 얼굴 스타일 = 필터 12종 × 소품 12종
 //
-// AI 없이 브라우저 캔버스 픽셀 연산만으로 처리합니다. 사진은 기기 밖으로 나가지 않습니다.
-// 입력은 정사각형 사진(촬영 화면의 얼굴 가이드 원에 맞춰 찍은 것)이며,
-// 액세서리(선글라스 · 선장 모자)는 가이드 원 기준 위치에 그립니다.
+// 필터는 캔버스 픽셀 연산, 소품은 캔버스로 직접 그립니다.
+// 사진은 배경이 지워진(투명) 정사각형이며, 필터는 사람 부분에만 적용됩니다.
+// 소품은 얼굴 위치(FaceGeom — vision.ts 가 찾음)에 맞춰 크기 · 기울기를 정합니다.
 // ─────────────────────────────────────────────────────────────
 
 export const PHOTO_SIZE = 720;
@@ -11,7 +11,33 @@ export const PHOTO_SIZE = 720;
 /** 촬영 화면의 얼굴 가이드 원 (정사각형 사진 기준 비율) */
 export const FACE_GUIDE = { cx: 0.5, cy: 0.5, rx: 0.27, ry: 0.36 } as const;
 
-/** 액세서리 위치 미세조정 — dy: 사진 높이 대비 이동, scale: 크기 배율 */
+/** 얼굴 위치 — 모두 사진 한 변 대비 비율 (roll 만 라디안) */
+export interface FaceGeom {
+  cx: number;
+  eyeY: number;
+  eyeDist: number;
+  roll: number;
+  /** 얼굴 상자 위쪽 (이마 근처) */
+  top: number;
+  /** 얼굴 상자 폭 */
+  width: number;
+  noseY: number;
+  mouthY: number;
+}
+
+/** 얼굴을 못 찾았을 때 — 가이드 원에 맞춰 찍었다고 보고 정한 위치 */
+export const DEFAULT_GEOM: FaceGeom = {
+  cx: 0.5,
+  eyeY: 0.45,
+  eyeDist: 0.2,
+  roll: 0,
+  top: 0.27,
+  width: 0.44,
+  noseY: 0.55,
+  mouthY: 0.64,
+};
+
+/** 소품 위치 미세조정 — dy: 사진 높이 대비 이동, scale: 크기 배율 */
 export interface Placement {
   dy: number;
   scale: number;
@@ -19,61 +45,98 @@ export interface Placement {
 
 export const DEFAULT_PLACEMENT: Placement = { dy: 0, scale: 1 };
 
-export const FACE_STYLES = [
-  { id: "natural", name: "내추럴", desc: "화사하게 보정한 프로필" },
+export const FILTERS = [
+  { id: "natural", name: "내추럴", desc: "화사한 기본 보정" },
+  { id: "glow", name: "뽀샤시", desc: "빛나는 피부 · 은은한 광채" },
   { id: "mono", name: "흑백 프로필", desc: "사진관 느낌의 흑백" },
-  { id: "film", name: "빈티지 필름", desc: "따뜻한 필름 카메라 감성" },
-  { id: "webtoon", name: "웹툰", desc: "선명한 외곽선의 만화풍" },
-  { id: "sketch", name: "연필 스케치", desc: "손으로 그린 듯한 드로잉" },
+  { id: "film", name: "빈티지 필름", desc: "따뜻한 필름 감성" },
+  { id: "webtoon", name: "웹툰", desc: "선명한 외곽선 만화풍" },
+  { id: "sketch", name: "연필 스케치", desc: "손으로 그린 드로잉" },
+  { id: "watercolor", name: "수채화", desc: "번지는 물감 느낌" },
   { id: "pop", name: "팝아트", desc: "블루 · 옐로 포스터" },
-  { id: "ocean", name: "오션 듀오톤", desc: "네이비 · 오션블루 톤" },
+  { id: "duotone", name: "블루 듀오톤", desc: "네이비 · 스카이 톤" },
+  { id: "halftone", name: "만화 망점", desc: "옛날 만화책 인쇄" },
+  { id: "neon", name: "네온사인", desc: "빛나는 네온 라인" },
   { id: "pixel", name: "8비트 픽셀", desc: "레트로 게임 캐릭터" },
-  { id: "ceo", name: "CEO 선글라스", desc: "성공한 10년 후의 여유", accessory: true },
-  { id: "captain", name: "캡틴 모자", desc: "모자를 쓴 멋진 캡틴", accessory: true },
-] as const satisfies readonly { id: string; name: string; desc: string; accessory?: boolean }[];
+] as const;
 
-export type FaceStyleId = (typeof FACE_STYLES)[number]["id"];
+export const PROPS = [
+  { id: "none", name: "소품 없음", emoji: "🙂" },
+  { id: "sunglasses", name: "선글라스", emoji: "😎" },
+  { id: "mustache", name: "콧수염 안경", emoji: "🥸" },
+  { id: "gradcap", name: "학사모", emoji: "🎓" },
+  { id: "crown", name: "왕관", emoji: "👑" },
+  { id: "captain", name: "캡틴 모자", emoji: "⚓" },
+  { id: "police", name: "경찰 모자", emoji: "👮" },
+  { id: "nurse", name: "간호사 캡", emoji: "🩺" },
+  { id: "chef", name: "셰프 모자", emoji: "🧑‍🍳" },
+  { id: "hardhat", name: "안전모", emoji: "⛑️" },
+  { id: "headset", name: "헤드셋", emoji: "🎧" },
+  { id: "bowtie", name: "나비넥타이", emoji: "🎀" },
+] as const;
 
-export function hasAccessory(id: FaceStyleId): boolean {
-  return FACE_STYLES.some((s) => s.id === id && "accessory" in s);
+export type FilterId = (typeof FILTERS)[number]["id"];
+export type PropId = (typeof PROPS)[number]["id"];
+
+export interface FaceStyle {
+  filter: FilterId;
+  prop: PropId;
 }
 
-/** 정사각형 원본 사진에 스타일을 입혀 size×size 캔버스로 돌려줍니다. */
+export const DEFAULT_STYLE: FaceStyle = { filter: "natural", prop: "none" };
+
+/** 투명 배경 정사각형 사진에 필터와 소품을 입혀 size×size 캔버스로 돌려줍니다. */
 export function renderFace(
   src: HTMLCanvasElement,
-  styleId: FaceStyleId,
+  style: FaceStyle,
   size: number,
+  geom: FaceGeom = DEFAULT_GEOM,
   place: Placement = DEFAULT_PLACEMENT,
 ): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
   ctx.drawImage(src, 0, 0, size, size);
-  STYLES[styleId](ctx, size, place);
+  FILTER_FNS[style.filter](ctx, size);
+  if (style.prop !== "none") {
+    ctx.save();
+    PROP_FNS[style.prop](enterFace(ctx, size, geom, place));
+    ctx.restore();
+  }
   return canvas;
 }
 
 type Ctx = CanvasRenderingContext2D;
 type RGB = readonly [number, number, number];
 
-const NAVY_DEEP: RGB = [6, 42, 92];
-const NAVY: RGB = [11, 58, 121];
-const OCEAN: RGB = [27, 111, 196];
-const OCEAN_MIST: RGB = [220, 238, 251];
-const SUN: RGB = [255, 210, 0];
+const NAVY_DEEP: RGB = [11, 42, 120];
+const NAVY: RGB = [19, 57, 154];
+const SKY: RGB = [8, 160, 246];
+const SKY_PALE: RGB = [227, 245, 254];
+const YELLOW: RGB = [255, 210, 30];
+const PINK: RGB = [228, 69, 122];
 const WHITE: RGB = [255, 255, 255];
+const rgb = (c: RGB) => `rgb(${c[0]},${c[1]},${c[2]})`;
 
-const STYLES: Record<FaceStyleId, (ctx: Ctx, size: number, place: Placement) => void> = {
+// ── 필터 ────────────────────────────────────────────────────
+
+const FILTER_FNS: Record<FilterId, (ctx: Ctx, size: number) => void> = {
   natural(ctx, size) {
     pixels(ctx, size, (d) => tone(d, { brightness: 8, contrast: 1.05, saturation: 1.12, warmth: 4 }));
   },
 
+  glow(ctx, size) {
+    pixels(ctx, size, (d) => tone(d, { brightness: 22, contrast: 0.92, saturation: 1.05, warmth: 6 }));
+    // 흐린 사본을 밝게 겹쳐 광채 — 가장자리로 살짝 번져 후광이 됩니다.
+    overlay(ctx, softCopy(ctx.canvas, 0.06), "screen", 0.55);
+  },
+
   mono(ctx, size) {
     pixels(ctx, size, (d) => {
-      const g = normalize(grayOf(d), 0.01);
+      const g = normalize(grayOf(d), d, 0.01);
       writeGray(d, g, (v) => clamp((v - 128) * 1.15 + 128));
     });
-    vignette(ctx, size, 0.45);
+    vignette(ctx, size, 0.35);
   },
 
   film(ctx, size) {
@@ -81,34 +144,30 @@ const STYLES: Record<FaceStyleId, (ctx: Ctx, size: number, place: Placement) => 
       tone(d, { brightness: 4, contrast: 0.95, saturation: 0.85, warmth: 10 });
       sepia(d, 0.45);
       for (let i = 0; i < d.length; i += 4) {
-        // 검은색을 살짝 띄워 바랜 느낌
         d[i] = 18 + d[i] * 0.9;
         d[i + 1] = 14 + d[i + 1] * 0.9;
         d[i + 2] = 10 + d[i + 2] * 0.88;
       }
       grain(d, 22);
     });
-    vignette(ctx, size, 0.5);
+    vignette(ctx, size, 0.4);
   },
 
   webtoon(ctx, size) {
     pixels(ctx, size, (d) => {
       const edges = sobel(boxBlur(grayOf(d), size, 1), size);
-      tone(d, { brightness: 10, contrast: 1.1, saturation: 1.35, warmth: 0 });
+      tone(d, { brightness: 12, contrast: 1.1, saturation: 1.35, warmth: 0 });
       const step = 255 / 4;
       for (let i = 0, p = 0; i < d.length; i += 4, p++) {
         const e = clamp01((edges[p] - 70) / 70);
-        for (let c = 0; c < 3; c++) {
-          const flat = Math.round(d[i + c] / step) * step;
-          d[i + c] = flat * (1 - e) + 28 * e;
-        }
+        for (let c = 0; c < 3; c++) d[i + c] = Math.round(d[i + c] / step) * step * (1 - e) + 28 * e;
       }
     });
   },
 
   sketch(ctx, size) {
     pixels(ctx, size, (d) => {
-      const g = normalize(grayOf(d), 0.01);
+      const g = normalize(grayOf(d), d, 0.01);
       const inv = g.map((v) => 255 - v);
       const blurred = boxBlur(inv, size, Math.max(2, Math.round(size / 90)), 2);
       // 컬러 닷지 — 연필 스케치의 기본 기법
@@ -120,33 +179,82 @@ const STYLES: Record<FaceStyleId, (ctx: Ctx, size: number, place: Placement) => 
     });
   },
 
+  watercolor(ctx, size) {
+    pixels(ctx, size, (d) => {
+      const r = Math.max(1, Math.round(size / 300));
+      const channels = [0, 1, 2].map((c) => {
+        const ch = new Float32Array(d.length / 4);
+        for (let i = c, p = 0; i < d.length; i += 4, p++) ch[p] = d[i];
+        return boxBlur(ch, size, r);
+      });
+      const [R, G, B] = channels;
+      const edges = sobel(boxBlur(grayOf(d), size, r + 1), size);
+      const step = 255 / 7;
+      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+        const l = 0.299 * R[p] + 0.587 * G[p] + 0.114 * B[p];
+        const e = clamp01((edges[p] - 20) / 90) * 60;
+        channels.forEach((ch, c) => {
+          const sat = l + (ch[p] - l) * 1.3 + 14;
+          d[i + c] = Math.round(sat / step) * step * 0.35 + sat * 0.65 - e;
+        });
+      }
+      grain(d, 14);
+    });
+  },
+
   pop(ctx, size) {
     pixels(ctx, size, (d) => {
-      const g = normalize(boxBlur(grayOf(d), size, 1), 0.02);
-      const bands: RGB[] = [NAVY_DEEP, OCEAN, SUN, WHITE];
+      const g = normalize(boxBlur(grayOf(d), size, 1), d, 0.02);
+      const bands: RGB[] = [NAVY_DEEP, SKY, YELLOW, WHITE];
       const cuts = [64, 122, 190];
       for (let i = 0, p = 0; i < d.length; i += 4, p++) {
         const b = cuts.findIndex((c) => g[p] < c);
-        const [r, gg, bb] = bands[b === -1 ? 3 : b];
-        d[i] = r;
-        d[i + 1] = gg;
-        d[i + 2] = bb;
+        [d[i], d[i + 1], d[i + 2]] = bands[b === -1 ? 3 : b];
       }
     });
   },
 
-  ocean(ctx, size) {
+  duotone(ctx, size) {
     pixels(ctx, size, (d) => {
-      const g = normalize(grayOf(d), 0.01);
+      const g = normalize(grayOf(d), d, 0.01);
       for (let i = 0, p = 0; i < d.length; i += 4, p++) {
         const t = g[p] / 255;
-        const [r, gg, b] =
-          t < 0.5 ? mix(NAVY_DEEP, OCEAN, t / 0.5) : mix(OCEAN, OCEAN_MIST, (t - 0.5) / 0.5);
-        d[i] = r;
-        d[i + 1] = gg;
-        d[i + 2] = b;
+        [d[i], d[i + 1], d[i + 2]] = t < 0.5 ? mix(NAVY_DEEP, SKY, t / 0.5) : mix(SKY, SKY_PALE, (t - 0.5) / 0.5);
       }
     });
+  },
+
+  halftone(ctx, size) {
+    const d = ctx.getImageData(0, 0, size, size).data;
+    const g = normalize(boxBlur(grayOf(d), size, 1), d, 0.02);
+    // 사람 부분만 종이색으로 칠하고 그 위에 망점
+    ctx.globalCompositeOperation = "source-atop";
+    ctx.fillStyle = "#FFF4D6";
+    ctx.fillRect(0, 0, size, size);
+    ctx.fillStyle = rgb(NAVY_DEEP);
+    const step = size / 64;
+    for (let row = 0, y = step / 2; y < size; row++, y += step) {
+      for (let x = step / 2 + (row % 2 ? step / 2 : 0); x < size; x += step) {
+        const r = (1 - g[Math.floor(y) * size + Math.floor(x)] / 255) * step * 0.62;
+        if (r < 0.4) continue;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.globalCompositeOperation = "source-over";
+  },
+
+  neon(ctx, size) {
+    pixels(ctx, size, (d) => {
+      const edges = sobel(boxBlur(grayOf(d), size, 1), size);
+      for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+        const color = mix(PINK, SKY, Math.floor(p / size) / size);
+        const e = clamp01((edges[p] - 35) / 70);
+        for (let c = 0; c < 3; c++) d[i + c] = d[i + c] * 0.18 + 10 + color[c] * e * 1.3 + 255 * e * e * 0.3;
+      }
+    });
+    overlay(ctx, softCopy(ctx.canvas, 0.03), "lighter", 0.7);
   },
 
   pixel(ctx, size) {
@@ -160,156 +268,409 @@ const STYLES: Record<FaceStyleId, (ctx: Ctx, size: number, place: Placement) => 
       const step = 255 / 5;
       for (let i = 0; i < d.length; i += 4) {
         for (let c = 0; c < 3; c++) d[i + c] = Math.round(d[i + c] / step) * step;
+        d[i + 3] = d[i + 3] > 110 ? 255 : 0;
       }
     });
+    ctx.clearRect(0, 0, size, size);
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(small, 0, 0, size, size);
     ctx.imageSmoothingEnabled = true;
   },
+};
 
-  ceo(ctx, size, place) {
-    STYLES.natural(ctx, size, place);
-    drawSunglasses(ctx, size, place);
+// ── 소품 ────────────────────────────────────────────────────
+
+/**
+ * 얼굴 기준 좌표계 — 원점은 두 눈 사이, 길이 1 은 얼굴 폭, 얼굴 기울기만큼 회전.
+ * 소품은 이 좌표계에서 그립니다 (위쪽이 음수).
+ */
+interface Frame {
+  ctx: Ctx;
+  /** 눈 사이 거리 */
+  eye: number;
+  /** 원점 기준 얼굴 위쪽 · 코 · 입 높이 */
+  top: number;
+  nose: number;
+  mouth: number;
+}
+
+function enterFace(ctx: Ctx, size: number, g: FaceGeom, place: Placement): Frame {
+  const u = g.width * size * place.scale;
+  ctx.translate(g.cx * size, (g.eyeY + place.dy) * size);
+  ctx.rotate(g.roll);
+  ctx.scale(u, u);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  return {
+    ctx,
+    eye: g.eyeDist / g.width,
+    top: (g.top - g.eyeY) / g.width,
+    nose: (g.noseY - g.eyeY) / g.width,
+    mouth: (g.mouthY - g.eyeY) / g.width,
+  };
+}
+
+/** 모자류 — 얼굴 상자는 머리카락을 빼고 잡히므로 이마 높이를 기준으로 k 배 키워 그립니다. */
+const hat =
+  (k: number, draw: (f: Frame) => void) =>
+  (f: Frame) => {
+    f.ctx.translate(0, f.top);
+    f.ctx.scale(k, k);
+    f.ctx.translate(0, -f.top);
+    draw(f);
+  };
+
+const PROP_FNS: Record<Exclude<PropId, "none">, (f: Frame) => void> = {
+  sunglasses: ({ ctx, eye }) => {
+    const lensW = eye * 0.82;
+    const lensH = eye * 0.5;
+    const inner = eye * 0.1;
+
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 0.03;
+    ctx.beginPath();
+    ctx.moveTo(-inner - lensW, -lensH * 0.35);
+    ctx.lineTo(-inner - lensW - 0.14, -lensH * 0.2);
+    ctx.moveTo(inner + lensW, -lensH * 0.35);
+    ctx.lineTo(inner + lensW + 0.14, -lensH * 0.2);
+    ctx.stroke();
+
+    for (const side of [-1, 1]) {
+      const a = side * inner;
+      const b = side * (inner + lensW);
+      const top = -lensH * 0.5;
+      const bottom = lensH * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(a, top);
+      ctx.lineTo(b, top - lensH * 0.08);
+      ctx.quadraticCurveTo(b + side * 0.02, bottom - lensH * 0.2, (a + b) / 2 + side * lensW * 0.15, bottom);
+      ctx.quadraticCurveTo(a, bottom, a, top + lensH * 0.15);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, top, 0, bottom);
+      grad.addColorStop(0, "#0b0b0f");
+      grad.addColorStop(1, "#2e3138");
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.lineWidth = 0.025;
+      ctx.strokeStyle = "#000";
+      ctx.stroke();
+      // 반사광
+      ctx.save();
+      ctx.clip();
+      ctx.strokeStyle = "rgba(255,255,255,0.28)";
+      ctx.lineWidth = 0.045;
+      ctx.beginPath();
+      ctx.moveTo(Math.min(a, b) + lensW * 0.25, bottom);
+      ctx.lineTo(Math.min(a, b) + lensW * 0.6, top);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 0.035;
+    ctx.beginPath();
+    ctx.moveTo(-inner, -lensH * 0.3);
+    ctx.quadraticCurveTo(0, -lensH * 0.55, inner, -lensH * 0.3);
+    ctx.stroke();
   },
 
-  captain(ctx, size, place) {
-    STYLES.natural(ctx, size, place);
-    drawCaptainHat(ctx, size, place);
+  mustache: ({ ctx, eye, nose, mouth }) => {
+    // 동그란 안경
+    ctx.lineWidth = 0.035;
+    ctx.strokeStyle = "#1b1b1f";
+    ctx.fillStyle = "rgba(255,255,255,0.12)";
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc((s * eye) / 2, 0, eye * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(-eye * 0.08, -0.02);
+    ctx.quadraticCurveTo(0, -0.07, eye * 0.08, -0.02);
+    ctx.stroke();
+    // 콧수염
+    const y = nose + (mouth - nose) * 0.45;
+    ctx.fillStyle = "#3a2618";
+    ctx.beginPath();
+    ctx.moveTo(0, y - 0.03);
+    ctx.bezierCurveTo(0.12, y - 0.1, 0.3, y - 0.02, 0.34, y + 0.06);
+    ctx.bezierCurveTo(0.22, y + 0.02, 0.12, y + 0.06, 0, y + 0.03);
+    ctx.bezierCurveTo(-0.12, y + 0.06, -0.22, y + 0.02, -0.34, y + 0.06);
+    ctx.bezierCurveTo(-0.3, y - 0.02, -0.12, y - 0.1, 0, y - 0.03);
+    ctx.fill();
+  },
+
+  gradcap: hat(1.2, ({ ctx, top }) => {
+    const y = top - 0.08;
+    ctx.fillStyle = "#16161c";
+    ctx.beginPath();
+    ctx.moveTo(-0.42, y);
+    ctx.quadraticCurveTo(0, y + 0.16, 0.42, y);
+    ctx.lineTo(0.4, y - 0.2);
+    ctx.lineTo(-0.4, y - 0.2);
+    ctx.closePath();
+    ctx.fill();
+    // 사각 판
+    ctx.fillStyle = "#24242c";
+    ctx.strokeStyle = "#3a3a46";
+    ctx.lineWidth = 0.02;
+    ctx.beginPath();
+    ctx.moveTo(0, y - 0.48);
+    ctx.lineTo(0.78, y - 0.26);
+    ctx.lineTo(0, y - 0.06);
+    ctx.lineTo(-0.78, y - 0.26);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    // 술
+    ctx.strokeStyle = rgb(YELLOW);
+    ctx.lineWidth = 0.03;
+    ctx.beginPath();
+    ctx.moveTo(0, y - 0.27);
+    ctx.quadraticCurveTo(0.45, y - 0.3, 0.55, y - 0.02);
+    ctx.stroke();
+    ctx.fillStyle = rgb(YELLOW);
+    ctx.fillRect(0.5, y - 0.04, 0.1, 0.18);
+    ctx.beginPath();
+    ctx.arc(0, y - 0.27, 0.04, 0, Math.PI * 2);
+    ctx.fill();
+  }),
+
+  crown: hat(1.15, ({ ctx, top }) => {
+    const y = top - 0.05;
+    const grad = ctx.createLinearGradient(0, y - 0.45, 0, y);
+    grad.addColorStop(0, "#FFE680");
+    grad.addColorStop(1, "#E8A800");
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = "#B07A00";
+    ctx.lineWidth = 0.02;
+    ctx.beginPath();
+    ctx.moveTo(-0.4, y);
+    ctx.lineTo(-0.46, y - 0.36);
+    ctx.lineTo(-0.22, y - 0.17);
+    ctx.lineTo(0, y - 0.46);
+    ctx.lineTo(0.22, y - 0.17);
+    ctx.lineTo(0.46, y - 0.36);
+    ctx.lineTo(0.4, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    const gems: [number, number, RGB][] = [
+      [-0.46, y - 0.36, PINK],
+      [0, y - 0.46, SKY],
+      [0.46, y - 0.36, PINK],
+      [0, y - 0.09, SKY],
+      [-0.24, y - 0.08, PINK],
+      [0.24, y - 0.08, PINK],
+    ];
+    for (const [x, yy, c] of gems) {
+      ctx.fillStyle = rgb(c);
+      ctx.beginPath();
+      ctx.arc(x, yy, 0.045, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }),
+
+  captain: hat(1.2, ({ ctx, top }) => peakedCap(ctx, top, "#FBFBF8", rgb(NAVY_DEEP), "anchor")),
+
+  police: hat(1.2, ({ ctx, top }) => peakedCap(ctx, top, "#1C2A4A", "#111a30", "star")),
+
+  nurse: hat(1.3, ({ ctx, top }) => {
+    const y = top - 0.02;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.strokeStyle = "#C9D3E0";
+    ctx.lineWidth = 0.02;
+    ctx.beginPath();
+    ctx.moveTo(-0.34, y);
+    ctx.lineTo(-0.28, y - 0.24);
+    ctx.quadraticCurveTo(0, y - 0.3, 0.28, y - 0.24);
+    ctx.lineTo(0.34, y);
+    ctx.quadraticCurveTo(0, y - 0.06, -0.34, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "#E23B4A";
+    ctx.fillRect(-0.025, y - 0.22, 0.05, 0.14);
+    ctx.fillRect(-0.07, y - 0.175, 0.14, 0.05);
+  }),
+
+  chef: hat(1.2, ({ ctx, top }) => {
+    const y = top - 0.04;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.strokeStyle = "#D5DCE6";
+    ctx.lineWidth = 0.02;
+    // 부푼 윗부분
+    ctx.beginPath();
+    for (const [x, yy, r] of [
+      [-0.26, y - 0.42, 0.22],
+      [0, y - 0.54, 0.26],
+      [0.26, y - 0.42, 0.22],
+    ]) {
+      ctx.moveTo(x + r, yy);
+      ctx.arc(x, yy, r, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    ctx.stroke();
+    // 밴드
+    ctx.beginPath();
+    ctx.rect(-0.38, y - 0.28, 0.76, 0.28);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = "#E8EDF3";
+    for (const x of [-0.2, 0, 0.2]) {
+      ctx.beginPath();
+      ctx.moveTo(x, y - 0.26);
+      ctx.lineTo(x, y - 0.02);
+      ctx.stroke();
+    }
+  }),
+
+  hardhat: hat(1.25, ({ ctx, top }) => {
+    const y = top + 0.04;
+    const grad = ctx.createLinearGradient(0, y - 0.45, 0, y);
+    grad.addColorStop(0, "#FFE15A");
+    grad.addColorStop(1, "#F2B600");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(-0.46, y);
+    ctx.bezierCurveTo(-0.46, y - 0.55, 0.46, y - 0.55, 0.46, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#E0A400";
+    ctx.beginPath();
+    ctx.ellipse(0, y, 0.6, 0.07, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#FFE98A";
+    ctx.fillRect(-0.05, y - 0.43, 0.1, 0.42);
+  }),
+
+  headset: ({ ctx, top, eye, mouth }) => {
+    const ear = 0.56;
+    const earY = eye * 0.25;
+    ctx.strokeStyle = "#1f2430";
+    ctx.lineWidth = 0.06;
+    ctx.beginPath();
+    ctx.moveTo(-ear, earY);
+    ctx.bezierCurveTo(-ear, top - 0.45, ear, top - 0.45, ear, earY);
+    ctx.stroke();
+    for (const s of [-1, 1]) {
+      ctx.fillStyle = rgb(NAVY);
+      roundRectPath(ctx, s * ear - 0.08, earY - 0.12, 0.16, 0.28, 0.07);
+      ctx.fill();
+      ctx.fillStyle = rgb(SKY);
+      roundRectPath(ctx, s * ear - 0.05, earY - 0.08, 0.1, 0.2, 0.05);
+      ctx.fill();
+    }
+    // 마이크
+    ctx.strokeStyle = "#1f2430";
+    ctx.lineWidth = 0.03;
+    ctx.beginPath();
+    ctx.moveTo(-ear, earY + 0.12);
+    ctx.quadraticCurveTo(-0.45, mouth + 0.05, -0.12, mouth + 0.02);
+    ctx.stroke();
+    ctx.fillStyle = "#1f2430";
+    ctx.beginPath();
+    ctx.ellipse(-0.1, mouth + 0.02, 0.06, 0.04, 0, 0, Math.PI * 2);
+    ctx.fill();
+  },
+
+  bowtie: ({ ctx, mouth }) => {
+    const y = mouth + 0.55;
+    ctx.fillStyle = rgb(PINK);
+    ctx.strokeStyle = "#a82556";
+    ctx.lineWidth = 0.02;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(s * 0.3, y - 0.14);
+      ctx.quadraticCurveTo(s * 0.36, y, s * 0.3, y + 0.14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.ellipse(0, y, 0.07, 0.08, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    for (const [x, yy] of [
+      [-0.18, y - 0.05],
+      [0.2, y + 0.04],
+      [-0.22, y + 0.06],
+      [0.16, y - 0.06],
+    ]) {
+      ctx.beginPath();
+      ctx.arc(x, yy, 0.022, 0, Math.PI * 2);
+      ctx.fill();
+    }
   },
 };
 
-// ── 액세서리 ─────────────────────────────────────────────────
+/** 챙 달린 모자 (캡틴 · 경찰) */
+function peakedCap(ctx: Ctx, faceTop: number, topColor: string, bandColor: string, badge: "anchor" | "star") {
+  const brimY = faceTop + 0.02;
+  const w = 1.15;
 
-function drawSunglasses(ctx: Ctx, size: number, { dy, scale }: Placement) {
-  const cx = FACE_GUIDE.cx * size;
-  const cy = (0.455 + dy) * size;
-  const u = size * scale; // 단위 길이
-  const lensW = 0.2 * u;
-  const lensH = 0.115 * u;
-  const gap = 0.035 * u;
-
-  ctx.save();
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-
-  // 다리
-  ctx.strokeStyle = "#111";
-  ctx.lineWidth = 0.014 * u;
+  ctx.fillStyle = bandColor;
   ctx.beginPath();
-  ctx.moveTo(cx - gap - lensW, cy - lensH * 0.35);
-  ctx.lineTo(cx - gap - lensW - 0.07 * u, cy - lensH * 0.2);
-  ctx.moveTo(cx + gap + lensW, cy - lensH * 0.35);
-  ctx.lineTo(cx + gap + lensW + 0.07 * u, cy - lensH * 0.2);
-  ctx.stroke();
-
-  for (const side of [-1, 1]) {
-    const inner = cx + side * gap;
-    const outer = cx + side * (gap + lensW);
-    const top = cy - lensH * 0.5;
-    const bottom = cy + lensH * 0.5;
-
-    ctx.beginPath();
-    ctx.moveTo(inner, top);
-    ctx.lineTo(outer, top - lensH * 0.08);
-    ctx.quadraticCurveTo(outer + side * 0.01 * u, bottom - lensH * 0.2, (inner + outer) / 2 + side * lensW * 0.15, bottom);
-    ctx.quadraticCurveTo(inner, bottom, inner, top + lensH * 0.15);
-    ctx.closePath();
-
-    const grad = ctx.createLinearGradient(0, top, 0, bottom);
-    grad.addColorStop(0, "#0b0b0f");
-    grad.addColorStop(1, "#2e3138");
-    ctx.fillStyle = grad;
-    ctx.fill();
-    ctx.lineWidth = 0.012 * u;
-    ctx.strokeStyle = "#000";
-    ctx.stroke();
-
-    // 반사광
-    ctx.save();
-    ctx.clip();
-    ctx.strokeStyle = "rgba(255,255,255,0.28)";
-    ctx.lineWidth = 0.022 * u;
-    ctx.beginPath();
-    ctx.moveTo(Math.min(inner, outer) + lensW * 0.25, bottom);
-    ctx.lineTo(Math.min(inner, outer) + lensW * 0.6, top);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // 브리지
-  ctx.strokeStyle = "#111";
-  ctx.lineWidth = 0.016 * u;
-  ctx.beginPath();
-  ctx.moveTo(cx - gap, cy - lensH * 0.3);
-  ctx.quadraticCurveTo(cx, cy - lensH * 0.55, cx + gap, cy - lensH * 0.3);
-  ctx.stroke();
-  ctx.restore();
-}
-
-function drawCaptainHat(ctx: Ctx, size: number, { dy, scale }: Placement) {
-  const cx = FACE_GUIDE.cx * size;
-  const brimY = (0.27 + dy) * size;
-  const w = 0.56 * size * scale; // 모자 폭
-
-  ctx.save();
-
-  // 밴드 (네이비)
-  ctx.fillStyle = `rgb(${NAVY_DEEP.join(",")})`;
-  ctx.beginPath();
-  ctx.moveTo(cx - 0.4 * w, brimY);
-  ctx.lineTo(cx - 0.44 * w, brimY - 0.24 * w);
-  ctx.lineTo(cx + 0.44 * w, brimY - 0.24 * w);
-  ctx.lineTo(cx + 0.4 * w, brimY);
+  ctx.moveTo(-0.4 * w, brimY);
+  ctx.lineTo(-0.44 * w, brimY - 0.24 * w);
+  ctx.lineTo(0.44 * w, brimY - 0.24 * w);
+  ctx.lineTo(0.4 * w, brimY);
   ctx.closePath();
   ctx.fill();
 
-  // 금색 끈
   ctx.strokeStyle = "#E8B931";
   ctx.lineWidth = 0.022 * w;
   ctx.beginPath();
-  ctx.moveTo(cx - 0.41 * w, brimY - 0.06 * w);
-  ctx.lineTo(cx + 0.41 * w, brimY - 0.06 * w);
+  ctx.moveTo(-0.41 * w, brimY - 0.06 * w);
+  ctx.lineTo(0.41 * w, brimY - 0.06 * w);
   ctx.stroke();
 
-  // 흰색 윗판
-  ctx.fillStyle = "#FBFBF8";
-  ctx.strokeStyle = "#C9CED6";
+  ctx.fillStyle = topColor;
+  ctx.strokeStyle = badge === "anchor" ? "#C9CED6" : "#0d1526";
   ctx.lineWidth = 0.012 * w;
   ctx.beginPath();
-  ctx.ellipse(cx, brimY - 0.26 * w, 0.54 * w, 0.13 * w, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, brimY - 0.26 * w, 0.54 * w, 0.13 * w, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
 
-  // 챙 (검정 유광)
   const brim = ctx.createLinearGradient(0, brimY, 0, brimY + 0.1 * w);
   brim.addColorStop(0, "#2a2d33");
   brim.addColorStop(1, "#050506");
   ctx.fillStyle = brim;
   ctx.beginPath();
-  ctx.ellipse(cx, brimY, 0.41 * w, 0.1 * w, 0, 0, Math.PI);
+  ctx.ellipse(0, brimY, 0.41 * w, 0.1 * w, 0, 0, Math.PI);
   ctx.closePath();
   ctx.fill();
 
-  // 배지 + 닻
   const by = brimY - 0.14 * w;
   const br = 0.075 * w;
   ctx.fillStyle = "#E8B931";
   ctx.beginPath();
-  ctx.arc(cx, by, br, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = `rgb(${NAVY_DEEP.join(",")})`;
-  ctx.lineWidth = br * 0.16;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(cx, by - br * 0.6);
-  ctx.lineTo(cx, by + br * 0.55);
-  ctx.moveTo(cx - br * 0.35, by - br * 0.25);
-  ctx.lineTo(cx + br * 0.35, by - br * 0.25);
-  ctx.moveTo(cx - br * 0.55, by + br * 0.1);
-  ctx.quadraticCurveTo(cx, by + br * 0.95, cx + br * 0.55, by + br * 0.1);
-  ctx.stroke();
-
-  ctx.restore();
+  if (badge === "anchor") {
+    ctx.arc(0, by, br, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = bandColor;
+    ctx.lineWidth = br * 0.16;
+    ctx.beginPath();
+    ctx.moveTo(0, by - br * 0.6);
+    ctx.lineTo(0, by + br * 0.55);
+    ctx.moveTo(-br * 0.35, by - br * 0.25);
+    ctx.lineTo(br * 0.35, by - br * 0.25);
+    ctx.moveTo(-br * 0.55, by + br * 0.1);
+    ctx.quadraticCurveTo(0, by + br * 0.95, br * 0.55, by + br * 0.1);
+    ctx.stroke();
+  } else {
+    for (let k = 0; k < 10; k++) {
+      const r = k % 2 ? br * 0.5 : br * 1.15;
+      const a = -Math.PI / 2 + (k * Math.PI) / 5;
+      ctx.lineTo(Math.cos(a) * r, by + Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
 }
 
 // ── 픽셀 연산 ───────────────────────────────────────────────
@@ -323,7 +684,7 @@ function pixels(ctx: Ctx, size: number, fn: (d: Uint8ClampedArray) => void) {
 const clamp = (v: number) => (v < 0 ? 0 : v > 255 ? 255 : v);
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
-function mix(a: RGB, b: RGB, t: number): RGB {
+function mix(a: RGB, b: RGB, t: number): [number, number, number] {
   return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 }
 
@@ -360,19 +721,37 @@ function grain(d: Uint8ClampedArray, amount: number) {
   }
 }
 
+/** 사람 부분에만 비네팅 */
 function vignette(ctx: Ctx, size: number, strength: number) {
   const g = ctx.createRadialGradient(size / 2, size / 2, size * 0.3, size / 2, size / 2, size * 0.72);
   g.addColorStop(0, "rgba(0,0,0,0)");
   g.addColorStop(1, `rgba(0,0,0,${strength})`);
+  ctx.globalCompositeOperation = "source-atop";
   ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.globalCompositeOperation = "source-over";
+}
+
+/** 작게 줄인 사본 — 다시 키워 그리면 흐려져 광채 · 번짐이 됩니다. */
+function softCopy(src: HTMLCanvasElement, ratio: number): HTMLCanvasElement {
+  const n = Math.max(8, Math.round(src.width * ratio));
+  const small = document.createElement("canvas");
+  small.width = small.height = n;
+  small.getContext("2d")!.drawImage(src, 0, 0, n, n);
+  return small;
+}
+
+function overlay(ctx: Ctx, img: HTMLCanvasElement, mode: GlobalCompositeOperation, alpha: number) {
+  ctx.globalCompositeOperation = mode;
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(img, 0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
 }
 
 function grayOf(d: Uint8ClampedArray): Float32Array {
   const g = new Float32Array(d.length / 4);
-  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
-    g[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-  }
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) g[p] = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
   return g;
 }
 
@@ -383,9 +762,11 @@ function writeGray(d: Uint8ClampedArray, g: Float32Array, fn: (v: number, p: num
   }
 }
 
-/** 노출이 제각각이어도 결과가 비슷하도록 밝기 범위를 0~255로 늘립니다. */
-function normalize(g: Float32Array, clip: number): Float32Array {
-  const sorted = Float32Array.from(g).sort();
+/** 노출이 제각각이어도 결과가 비슷하도록 사람 부분의 밝기 범위를 0~255로 늘립니다. */
+function normalize(g: Float32Array, d: Uint8ClampedArray, clip: number): Float32Array {
+  const person: number[] = [];
+  for (let p = 0; p < g.length; p++) if (d[p * 4 + 3] > 128) person.push(g[p]);
+  const sorted = (person.length > 100 ? Float32Array.from(person) : Float32Array.from(g)).sort();
   const lo = sorted[Math.floor(sorted.length * clip)];
   const hi = sorted[Math.floor(sorted.length * (1 - clip)) - 1];
   const range = Math.max(1, hi - lo);
@@ -431,4 +812,14 @@ function sobel(g: Float32Array, size: number): Float32Array {
     }
   }
   return out;
+}
+
+function roundRectPath(ctx: Ctx, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
 }

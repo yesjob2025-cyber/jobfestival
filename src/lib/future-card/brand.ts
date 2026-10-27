@@ -7,6 +7,8 @@
 
 import { COMPANIES, EXPO } from "@/lib/expo";
 import { KDU_EXPO } from "@/lib/kdu";
+import type { KduDesignId } from "./cards-kdu";
+import type { KmouDesignId } from "./cards-kmou";
 
 export interface FutureCardBrand {
   id: "kmou" | "kdu";
@@ -27,6 +29,10 @@ export interface FutureCardBrand {
   /** 랜덤 추천용 직책 → 어울리는 직급 ("팀장 · 사장" 같은 조합을 막습니다) */
   roleCombos: readonly (readonly [position: string, ranks: readonly string[]])[];
   slogans: readonly string[];
+  /** 고를 수 있는 명함 디자인 (첫 번째가 기본) */
+  designs: readonly (KmouDesignId | KduDesignId)[];
+  /** 완성 명함을 QR 로 휴대폰에 받는 페이지 — 없으면 QR 받기 숨김 */
+  receivePath?: string;
 }
 
 const COMMON_ROLES = [
@@ -74,6 +80,7 @@ export const KMOU_BRAND: FutureCardBrand = {
     "KMOU가 키운 글로벌 인재",
     ...COMMON_SLOGANS,
   ],
+  designs: ["navy", "classic", "startup", "minimal", "marine", "retro"],
 };
 
 export const KDU_BRAND: FutureCardBrand = {
@@ -123,6 +130,8 @@ export const KDU_BRAND: FutureCardBrand = {
     "KDU가 키운 글로벌 인재",
     ...COMMON_SLOGANS,
   ],
+  designs: ["funfun", "kduNavy", "kduClassic", "mascot", "sticker", "pinkfun", "bubble", "badge", "ticket", "dream"],
+  receivePath: "/kdu/card",
 };
 
 export const BRANDS = { kmou: KMOU_BRAND, kdu: KDU_BRAND } as const;
