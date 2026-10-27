@@ -21,6 +21,8 @@
 | `/companies/[id]` | 기업 상세 — 부스번호·분류·업종, 채용설명회/멘토링 연계, 이전·다음 기업 |
 | `/program` | 행사 프로그램 — 채용설명회 시간표, 동문 멘토, 부대 이벤트 |
 | `/future-card` | 부스 이벤트 **미래 명함 만들기** — 사진 촬영 → 얼굴 스타일 10종 → 명함 내용 → 디자인 6종 → PNG 저장 · 인쇄 |
+| `/kdu` | **2026학년도 경동대학교 Fun Fun Job Festival** 메인 (포스터 시안 기준, 별도 머리글 · 바닥글) |
+| `/kdu/future-card` | 경동대용 미래 명함 만들기 — 명함에 `KDU` 표기, 경동대용 회사 · 직무 · 한마디 |
 
 외부 서비스(DB·API) 없이 **정적 데이터로만 동작**합니다. 환경변수 설정이 필요 없습니다.
 
@@ -75,11 +77,18 @@ npm run build    # 프로덕션 빌드
 |------|------|
 | `src/lib/future-card/faces.ts` | 얼굴 스타일 10종 (캔버스 필터 · 선글라스 · 선장 모자) |
 | `src/lib/future-card/cards.ts` | 명함 디자인 6종 (1800×1000px = 90×50mm) |
-| `src/lib/future-card/presets.ts` | 직급 · 직책 · 부서 · 한마디 빠른 선택 목록, 랜덤 추천 |
+| `src/lib/future-card/brand.ts` | 행사별 설정 (KMOU · KDU) — 학교 약칭, 회사 목록, 부서 · 직책 · 한마디 |
+| `src/lib/future-card/presets.ts` | 입력 항목, 직급 목록, 랜덤 추천 |
+| `src/components/future-card/` | 단계별 화면 (두 행사가 함께 사용) |
 
 부스 운영 팁: 한 분이 끝나면 **‘다음 분 시작하기’** 를 눌러 사진과 입력을 지웁니다.
 
-### 5) 배포
+### 5) 경동대 Fun Fun Job Festival (`/kdu`)
+
+행사 정보는 **`src/lib/kdu.ts`**, 마스코트 · 포스터 이미지는 `public/kdu/` 에 있습니다.
+KMOU 페이지는 `src/app/(kmou)/`, 경동대 페이지는 `src/app/kdu/` 로 나뉘어 머리글 · 바닥글이 따로 적용됩니다. (주소는 그대로)
+
+### 6) 배포
 
 `main` 브랜치에 푸시하면 Vercel이 자동으로 빌드·배포합니다.
 

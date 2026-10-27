@@ -25,6 +25,16 @@ const config: Config = {
           DEFAULT: "#FFD200",
           deep: "#F5B800",
         },
+        /** 경동대 Fun Fun Job Festival 포스터 (스카이블루 · 네이비 · 옐로 · 핑크) */
+        kdu: {
+          sky: "#08A0F6",
+          "sky-light": "#8FD6FB",
+          "sky-pale": "#E3F5FE",
+          navy: "#13399A",
+          "navy-deep": "#0B2A78",
+          yellow: "#FFD21E",
+          pink: "#E4457A",
+        },
         ink: {
           DEFAULT: "#12203A",
           soft: "#3D4C68",
@@ -34,6 +44,10 @@ const config: Config = {
         },
       },
       fontFamily: {
+        /** 경동대 페이지 — 영문 제목 · 한글 제목 · 손글씨 */
+        fun: ["Fredoka", "Jua", "Pretendard", "sans-serif"],
+        jua: ["Jua", "Pretendard", "sans-serif"],
+        hand: ["Gaegu", "Pretendard", "sans-serif"],
         sans: [
           "Pretendard",
           "-apple-system",

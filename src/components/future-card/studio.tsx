@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { CameraCapture } from "./camera";
 import {
   DEFAULT_PLACEMENT,
@@ -12,25 +12,22 @@ import {
   type Placement,
 } from "@/lib/future-card/faces";
 import { CARD_DESIGNS, ensureFonts, renderCard, type CardDesignId } from "@/lib/future-card/cards";
-import {
-  EMPTY_INFO,
-  EXPO_COMPANY_NAMES,
-  FUTURE_YEAR,
-  POSITIONS,
-  RANKS,
-  randomInfo,
-  type CardInfo,
-} from "@/lib/future-card/presets";
+import { BRANDS, futureYear, type BrandId, type FutureCardBrand } from "@/lib/future-card/brand";
+import { EMPTY_INFO, RANKS, randomInfo, type CardInfo } from "@/lib/future-card/presets";
 
 const STEPS = ["사진 촬영", "얼굴 스타일", "명함 내용", "명함 디자인", "완성"] as const;
 
-export function FutureCardStudio() {
+/** 행사(학교)별 설정 — 명함 문구 · 회사 목록 · 랜덤 추천 */
+const BrandContext = createContext<FutureCardBrand>(BRANDS.kmou);
+const useBrand = () => useContext(BrandContext);
+
+export function FutureCardStudio({ brand = "kmou" }: { brand?: BrandId }) {
   const [step, setStep] = useState(0);
   const [photo, setPhoto] = useState<HTMLCanvasElement | null>(null);
   const [faceStyle, setFaceStyle] = useState<FaceStyleId>("natural");
   const [place, setPlace] = useState<Placement>(DEFAULT_PLACEMENT);
   const [info, setInfo] = useState<CardInfo>(EMPTY_INFO);
-  const [design, setDesign] = useState<CardDesignId>("kmou");
+  const [design, setDesign] = useState<CardDesignId>("navy");
 
   const face = useMemo(
     () => (photo ? renderFace(photo, faceStyle, PHOTO_SIZE, place) : null),
@@ -48,49 +45,51 @@ export function FutureCardStudio() {
     setFaceStyle("natural");
     setPlace(DEFAULT_PLACEMENT);
     setInfo(EMPTY_INFO);
-    setDesign("kmou");
+    setDesign("navy");
     go(0);
   }
 
   return (
-    <div className="wrap py-8 sm:py-10">
-      <Stepper step={step} onJump={go} />
+    <BrandContext.Provider value={BRANDS[brand]}>
+      <div className="wrap py-8 sm:py-10">
+        <Stepper step={step} onJump={go} />
 
-      <div className="mt-8">
-        {step === 0 && (
-          <CameraCapture
-            onCapture={(c) => {
-              setPhoto(c);
-              setPlace(DEFAULT_PLACEMENT);
-              go(1);
-            }}
-          />
-        )}
+        <div className="mt-8">
+          {step === 0 && (
+            <CameraCapture
+              onCapture={(c) => {
+                setPhoto(c);
+                setPlace(DEFAULT_PLACEMENT);
+                go(1);
+              }}
+            />
+          )}
 
-        {step === 1 && photo && face && (
-          <FaceStep
-            photo={photo}
-            face={face}
-            styleId={faceStyle}
-            place={place}
-            onStyle={setFaceStyle}
-            onPlace={setPlace}
-            onRetake={() => go(0)}
-            onNext={() => go(2)}
-          />
-        )}
+          {step === 1 && photo && face && (
+            <FaceStep
+              photo={photo}
+              face={face}
+              styleId={faceStyle}
+              place={place}
+              onStyle={setFaceStyle}
+              onPlace={setPlace}
+              onRetake={() => go(0)}
+              onNext={() => go(2)}
+            />
+          )}
 
-        {step === 2 && face && (
-          <InfoStep face={face} info={info} design={design} onChange={setInfo} onBack={() => go(1)} onNext={() => go(3)} />
-        )}
+          {step === 2 && face && (
+            <InfoStep face={face} info={info} design={design} onChange={setInfo} onBack={() => go(1)} onNext={() => go(3)} />
+          )}
 
-        {step === 3 && face && (
-          <DesignStep face={face} info={info} design={design} onDesign={setDesign} onBack={() => go(2)} onNext={() => go(4)} />
-        )}
+          {step === 3 && face && (
+            <DesignStep face={face} info={info} design={design} onDesign={setDesign} onBack={() => go(2)} onNext={() => go(4)} />
+          )}
 
-        {step === 4 && face && <ResultStep face={face} info={info} design={design} onBack={() => go(3)} onReset={reset} />}
+          {step === 4 && face && <ResultStep face={face} info={info} design={design} onBack={() => go(3)} onReset={reset} />}
+        </div>
       </div>
-    </div>
+    </BrandContext.Provider>
   );
 }
 
@@ -253,6 +252,7 @@ function InfoStep(props: {
   onNext: () => void;
 }) {
   const { info, onChange } = props;
+  const brand = useBrand();
   const set = (key: keyof CardInfo) => (value: string) => onChange({ ...info, [key]: value });
   const ready = info.name.trim() !== "" && info.company.trim() !== "";
   const preview = useMemo(() => withPlaceholders(info), [info]);
@@ -261,7 +261,7 @@ function InfoStep(props: {
     <>
       <StepTitle
         label="Step 3"
-        title={`${FUTURE_YEAR}년, 10년 후 나의 명함`}
+        title={`${futureYear(brand)}년, 10년 후 나의 명함`}
         desc="이름과 회사는 꼭 입력해 주세요. 나머지는 ‘랜덤 추천’으로 채워도 됩니다."
       />
       <div className="grid gap-8 lg:grid-cols-[1fr_minmax(0,520px)]">
@@ -277,10 +277,10 @@ function InfoStep(props: {
               className="field mt-2"
               value=""
               onChange={(e) => e.target.value && set("company")(e.target.value)}
-              aria-label="박람회 참여기업에서 고르기"
+              aria-label={brand.companiesLabel}
             >
-              <option value="">🏢 박람회 참여기업에서 고르기</option>
-              {EXPO_COMPANY_NAMES.map((n) => (
+              <option value="">{brand.companiesLabel}</option>
+              {brand.companies.map((n) => (
                 <option key={n} value={n}>
                   {n}
                 </option>
@@ -297,13 +297,13 @@ function InfoStep(props: {
             </div>
             <div>
               <Field label="직책" value={info.position} onChange={set("position")} placeholder="팀장" />
-              <Chips options={POSITIONS} value={info.position} onPick={set("position")} />
+              <Chips options={brand.positions} value={info.position} onPick={set("position")} />
             </div>
           </div>
 
           <Field label="나의 한마디" value={info.slogan} onChange={set("slogan")} placeholder="바다처럼 넓게, 파도처럼 힘차게" maxLength={30} />
 
-          <button type="button" onClick={() => onChange(randomInfo(info))} className="btn-sun w-full py-3.5">
+          <button type="button" onClick={() => onChange(randomInfo(brand, info))} className="btn-sun w-full py-3.5">
             🎲 회사 · 직무 · 직급 랜덤 추천
           </button>
         </div>
@@ -399,6 +399,7 @@ function DesignStep(props: {
 // ── 5단계: 완성 ──────────────────────────────────────────────
 
 function ResultStep(props: { face: HTMLCanvasElement; info: CardInfo; design: CardDesignId; onBack: () => void; onReset: () => void }) {
+  const brand = useBrand();
   const url = useCardUrl(props.face, props.info, props.design, 1);
 
   function download() {
@@ -406,13 +407,13 @@ function ResultStep(props: { face: HTMLCanvasElement; info: CardInfo; design: Ca
     const a = document.createElement("a");
     a.href = url;
     // 한글 파일명은 일부 브라우저에서 "download" 로 바뀌므로 영문으로 저장합니다.
-    a.download = `KMOU-future-card-${FUTURE_YEAR}-${Date.now() % 100000}.png`;
+    a.download = `${brand.short}-future-card-${futureYear(brand)}-${Date.now() % 100000}.png`;
     a.click();
   }
 
   return (
     <>
-      <StepTitle label="Step 5" title={`${props.info.name}님의 ${FUTURE_YEAR}년 명함이 나왔어요! 🎉`} />
+      <StepTitle label="Step 5" title={`${props.info.name}님의 ${futureYear(brand)}년 명함이 나왔어요! 🎉`} />
       <style>{`@media print {
         @page { size: 90mm 50mm; margin: 0; }
         body * { visibility: hidden !important; }
@@ -453,16 +454,17 @@ function ResultStep(props: { face: HTMLCanvasElement; info: CardInfo; design: Ca
 // ── 공통 ────────────────────────────────────────────────────
 
 function useCardUrl(face: HTMLCanvasElement, info: CardInfo, design: CardDesignId, scale: number) {
+  const brand = useBrand();
   const [url, setUrl] = useState("");
   useEffect(() => {
     let alive = true;
-    ensureFonts(info).then(() => {
-      if (alive) setUrl(renderCard(face, info, design, scale).toDataURL("image/png"));
+    ensureFonts(info, brand).then(() => {
+      if (alive) setUrl(renderCard(face, info, design, brand, scale).toDataURL("image/png"));
     });
     return () => {
       alive = false;
     };
-  }, [face, info, design, scale]);
+  }, [face, info, design, brand, scale]);
   return url;
 }
 

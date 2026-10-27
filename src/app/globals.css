@@ -61,6 +61,60 @@ body {
     @apply w-full rounded-xl border border-ink-line bg-white px-3.5 py-2.5 text-sm text-ink
            placeholder:text-ink-muted/70 focus:border-ocean focus:outline-none focus:ring-2 focus:ring-ocean/20;
   }
+
+  /* 경동대 포스터의 입체 글자 — 네이비 외곽선 + 아래로 쌓인 두께 */
+  .kdu-3d {
+    --kdu-outline: #13399a;
+    text-shadow:
+      0.06em 0 0 var(--kdu-outline),
+      0.055em 0.023em 0 var(--kdu-outline),
+      0.042em 0.042em 0 var(--kdu-outline),
+      0.023em 0.055em 0 var(--kdu-outline),
+      0 0.06em 0 var(--kdu-outline),
+      -0.023em 0.055em 0 var(--kdu-outline),
+      -0.042em 0.042em 0 var(--kdu-outline),
+      -0.055em 0.023em 0 var(--kdu-outline),
+      -0.06em 0 0 var(--kdu-outline),
+      -0.055em -0.023em 0 var(--kdu-outline),
+      -0.042em -0.042em 0 var(--kdu-outline),
+      -0.023em -0.055em 0 var(--kdu-outline),
+      0 -0.06em 0 var(--kdu-outline),
+      0.023em -0.055em 0 var(--kdu-outline),
+      0.042em -0.042em 0 var(--kdu-outline),
+      0.055em -0.023em 0 var(--kdu-outline),
+      0 0.09em 0 #0b2a78,
+      0.03em 0.11em 0 #0b2a78,
+      0 0.13em 0 #0b2a78,
+      0 0.2em 0.12em rgba(6, 30, 90, 0.35);
+  }
+
+  .kdu-card {
+    @apply rounded-3xl border-[3px] border-kdu-navy bg-white shadow-[0_10px_0_-2px_rgba(11,42,120,0.25)];
+  }
+
+  .kdu-pill {
+    @apply inline-flex items-center rounded-full bg-kdu-navy px-6 py-2 font-jua text-lg text-white;
+  }
+
+  .kdu-float {
+    animation: kdu-float 3.2s ease-in-out infinite;
+  }
+}
+
+@keyframes kdu-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kdu-float {
+    animation: none;
+  }
 }
 
 * {

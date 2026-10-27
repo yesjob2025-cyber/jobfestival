@@ -4,14 +4,15 @@
 // 명함 비율 90×50mm 를 1800×1000px 로 그립니다 (인쇄 시 약 500dpi).
 // ─────────────────────────────────────────────────────────────
 
-import { FUTURE_YEAR, titleLine, type CardInfo } from "./presets";
+import { futureYear, type FutureCardBrand } from "./brand";
+import { titleLine, type CardInfo } from "./presets";
 
 export const CARD_W = 1800;
 export const CARD_H = 1000;
 
 export const CARD_DESIGNS = [
   { id: "classic", name: "클래식 화이트" },
-  { id: "kmou", name: "KMOU 네이비" },
+  { id: "navy", name: "네이비 옐로" },
   { id: "startup", name: "스타트업 그라데이션" },
   { id: "minimal", name: "미니멀 블랙" },
   { id: "marine", name: "마린 웨이브" },
@@ -40,12 +41,12 @@ const C = {
 };
 
 /** 디자인에 고정으로 들어가는 문구 — 웹폰트 글리프를 미리 받아 둡니다. */
-const STATIC_TEXT = `FUTURE CARD KMOU EMPLOYEE ID #${FUTURE_YEAR} 성명 NAME 소속 직위 승진 확정 “”·-0123456789`;
+const STATIC_TEXT = "FUTURE CARD EMPLOYEE ID # 성명 NAME 소속 직위 승진 확정 “”·-0123456789";
 
 /** 캔버스는 아직 받지 않은 웹폰트 글자를 기본 글꼴로 그리므로, 그리기 전에 글자를 불러 둡니다. */
-export async function ensureFonts(info: CardInfo): Promise<void> {
+export async function ensureFonts(info: CardInfo, brand: FutureCardBrand): Promise<void> {
   if (typeof document === "undefined" || !document.fonts) return;
-  const text = Object.values(info).join("") + STATIC_TEXT;
+  const text = Object.values(info).join("") + brand.short + STATIC_TEXT;
   await Promise.all(
     [300, 400, 500, 600, 700, 800, 900].map((w) =>
       document.fonts.load(`${w} 40px "Pretendard Variable"`, text).catch(() => []),
@@ -53,28 +54,40 @@ export async function ensureFonts(info: CardInfo): Promise<void> {
   );
 }
 
-export function drawCard(ctx: CanvasRenderingContext2D, face: HTMLCanvasElement, info: CardInfo, design: CardDesignId) {
+export function drawCard(
+  ctx: CanvasRenderingContext2D,
+  face: HTMLCanvasElement,
+  info: CardInfo,
+  design: CardDesignId,
+  brand: FutureCardBrand,
+) {
   ctx.save();
   ctx.textBaseline = "alphabetic";
-  DESIGNS[design](ctx, face, info);
+  DESIGNS[design](ctx, face, info, brand);
   ctx.restore();
 }
 
 /** scale 배율로 그린 명함 캔버스 (미리보기는 작게, 저장은 1) */
-export function renderCard(face: HTMLCanvasElement, info: CardInfo, design: CardDesignId, scale = 1): HTMLCanvasElement {
+export function renderCard(
+  face: HTMLCanvasElement,
+  info: CardInfo,
+  design: CardDesignId,
+  brand: FutureCardBrand,
+  scale = 1,
+): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(CARD_W * scale);
   canvas.height = Math.round(CARD_H * scale);
   const ctx = canvas.getContext("2d")!;
   ctx.scale(scale, scale);
-  drawCard(ctx, face, info, design);
+  drawCard(ctx, face, info, design, brand);
   return canvas;
 }
 
 type Ctx = CanvasRenderingContext2D;
 
-const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: CardInfo) => void> = {
-  classic(ctx, face, info) {
+const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: CardInfo, brand: FutureCardBrand) => void> = {
+  classic(ctx, face, info, brand) {
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, CARD_W, CARD_H);
 
@@ -97,7 +110,7 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     ctx.strokeStyle = C.inkLine;
     ctx.lineWidth = 4;
     ctx.stroke();
-    text(ctx, `FUTURE CARD ${FUTURE_YEAR}`, 1700, 895, { size: 30, weight: 800, color: C.ocean, align: "right" });
+    text(ctx, `FUTURE CARD ${futureYear(brand)}`, 1700, 895, { size: 30, weight: 800, color: C.ocean, align: "right" });
 
     ctx.fillStyle = C.navy;
     ctx.fillRect(0, 960, CARD_W, 40);
@@ -105,7 +118,7 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     ctx.fillRect(0, 960, 360, 40);
   },
 
-  kmou(ctx, face, info) {
+  navy(ctx, face, info, brand) {
     const bg = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
     bg.addColorStop(0, C.navyDeep);
     bg.addColorStop(0.6, C.navy);
@@ -132,10 +145,10 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     ctx.clip();
     drawCover(ctx, face, 1128, 188, 544, 544);
     ctx.restore();
-    text(ctx, `KMOU · ${FUTURE_YEAR}`, 1400, 900, { size: 36, weight: 800, color: C.sun, align: "center" });
+    text(ctx, `${brand.short} · ${futureYear(brand)}`, 1400, 900, { size: 36, weight: 800, color: C.sun, align: "center" });
   },
 
-  startup(ctx, face, info) {
+  startup(ctx, face, info, brand) {
     const bg = ctx.createLinearGradient(0, 0, CARD_W, CARD_H);
     bg.addColorStop(0, C.ocean);
     bg.addColorStop(0.55, "#6C4DF6");
@@ -155,7 +168,7 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     ctx.restore();
 
     ctx.font = font(800, 30);
-    const tag = `#FUTURE ${FUTURE_YEAR}`;
+    const tag = `#FUTURE ${futureYear(brand)}`;
     const tagW = ctx.measureText(tag).width + 64;
     roundRect(ctx, 760, 166, tagW, 64, 32);
     ctx.fillStyle = "rgba(255,255,255,0.22)";
@@ -178,7 +191,7 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     }
   },
 
-  minimal(ctx, face, info) {
+  minimal(ctx, face, info, brand) {
     const gold = "#D4B26A";
     ctx.fillStyle = "#0E0F12";
     ctx.fillRect(0, 0, CARD_W, CARD_H);
@@ -191,7 +204,7 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     ctx.fillRect(1180, 0, 220, CARD_H);
 
     text(ctx, info.company, 120, 190, { size: 42, weight: 600, color: gold, maxW: 900 });
-    text(ctx, `FUTURE ${FUTURE_YEAR}`, 1040, 190, { size: 26, weight: 600, color: "rgba(212,178,106,0.7)", align: "right" });
+    text(ctx, `FUTURE ${futureYear(brand)}`, 1040, 190, { size: 26, weight: 600, color: "rgba(212,178,106,0.7)", align: "right" });
     ctx.fillStyle = gold;
     ctx.fillRect(120, 236, 400, 2);
 
@@ -202,7 +215,7 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     text(ctx, info.slogan, 120, 920, { size: 30, weight: 400, color: gold, maxW: 920 });
   },
 
-  marine(ctx, face, info) {
+  marine(ctx, face, info, brand) {
     const bg = ctx.createLinearGradient(0, 0, 0, CARD_H);
     bg.addColorStop(0, "#F4FAFF");
     bg.addColorStop(1, C.oceanMist);
@@ -222,7 +235,7 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     ctx.restore();
 
     anchor(ctx, 1680, 140, 56, C.navy);
-    text(ctx, `${FUTURE_YEAR}`, 1600, 160, { size: 40, weight: 900, color: C.navy, align: "right" });
+    text(ctx, `${futureYear(brand)}`, 1600, 160, { size: 40, weight: 900, color: C.navy, align: "right" });
 
     text(ctx, info.company, 640, 220, { size: 54, weight: 800, color: C.navy, maxW: 880 });
     text(ctx, info.dept, 640, 276, { size: 34, weight: 500, color: C.inkSoft, maxW: 1000 });
@@ -231,10 +244,10 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     text(ctx, info.nameEn.toUpperCase(), 640, 668, { size: 36, weight: 600, color: C.inkMuted, maxW: 1000 });
     text(ctx, quote(info.slogan), 640, 770, { size: 34, weight: 600, color: C.navySoft, maxW: 1000 });
 
-    text(ctx, `KMOU FUTURE CARD · ${FUTURE_YEAR}`, CARD_W / 2, 982, { size: 26, weight: 700, color: "rgba(255,255,255,0.9)", align: "center" });
+    text(ctx, `${brand.short} FUTURE CARD · ${futureYear(brand)}`, CARD_W / 2, 982, { size: 26, weight: 700, color: "rgba(255,255,255,0.9)", align: "center" });
   },
 
-  retro(ctx, face, info) {
+  retro(ctx, face, info, brand) {
     ctx.fillStyle = C.sun;
     ctx.fillRect(0, 0, CARD_W, CARD_H);
 
@@ -252,7 +265,7 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     ctx.stroke();
 
     text(ctx, info.company, 110, 148, { size: 50, weight: 900, color: C.sun, maxW: 1150 });
-    text(ctx, `ID ${FUTURE_YEAR}`, 1690, 145, { size: 40, weight: 800, color: "#FFFFFF", align: "right" });
+    text(ctx, `ID ${futureYear(brand)}`, 1690, 145, { size: 40, weight: 800, color: "#FFFFFF", align: "right" });
 
     drawCover(ctx, face, 110, 260, 440, 560);
     ctx.strokeStyle = C.navy;
@@ -270,7 +283,7 @@ const DESIGNS: Record<CardDesignId, (ctx: Ctx, face: HTMLCanvasElement, info: Ca
     text(ctx, quote(info.slogan), 620, 760, { size: 32, weight: 600, color: C.ocean, maxW: 600 });
 
     barcode(ctx, 1260, 790, 430, 90, info.name + info.company);
-    text(ctx, `${FUTURE_YEAR}-0910-${String(hash(info.name) % 10000).padStart(4, "0")}`, 1475, 916, {
+    text(ctx, `${futureYear(brand)}-${brand.dateCode}-${String(hash(info.name) % 10000).padStart(4, "0")}`, 1475, 916, {
       size: 24,
       weight: 600,
       color: C.ink,

@@ -25,11 +25,11 @@ export const FACE_STYLES = [
   { id: "film", name: "빈티지 필름", desc: "따뜻한 필름 카메라 감성" },
   { id: "webtoon", name: "웹툰", desc: "선명한 외곽선의 만화풍" },
   { id: "sketch", name: "연필 스케치", desc: "손으로 그린 듯한 드로잉" },
-  { id: "pop", name: "팝아트", desc: "KMOU 컬러 포스터" },
+  { id: "pop", name: "팝아트", desc: "블루 · 옐로 포스터" },
   { id: "ocean", name: "오션 듀오톤", desc: "네이비 · 오션블루 톤" },
   { id: "pixel", name: "8비트 픽셀", desc: "레트로 게임 캐릭터" },
   { id: "ceo", name: "CEO 선글라스", desc: "성공한 10년 후의 여유", accessory: true },
-  { id: "captain", name: "KMOU 선장", desc: "선장 모자를 쓴 캡틴", accessory: true },
+  { id: "captain", name: "캡틴 모자", desc: "모자를 쓴 멋진 캡틴", accessory: true },
 ] as const satisfies readonly { id: string; name: string; desc: string; accessory?: boolean }[];
 
 export type FaceStyleId = (typeof FACE_STYLES)[number]["id"];

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { EXPO } from "@/lib/expo";
-import { FUTURE_YEAR } from "@/lib/future-card/presets";
-import { FutureCardStudio } from "./studio";
+import { futureYear, KMOU_BRAND } from "@/lib/future-card/brand";
+import { FutureCardStudio } from "@/components/future-card/studio";
+
+const FUTURE_YEAR = futureYear(KMOU_BRAND);
 
 export const metadata: Metadata = {
   title: "미래 명함 만들기",
@@ -20,7 +22,7 @@ export default function FutureCardPage() {
           </p>
         </div>
       </section>
-      <FutureCardStudio />
+      <FutureCardStudio brand="kmou" />
     </>
   );
 }
