@@ -62,7 +62,53 @@ export interface IdAdjust {
 export const DEFAULT_ID_OPTIONS: IdOptions = { outfit: "suitTie", suit: "navy", tie: "navy", bg: "sky", bright: false };
 export const DEFAULT_ADJUST: IdAdjust = { zoom: 1, outfitY: 0, outfitScale: 1 };
 
-export function renderIdPhoto(cutout: HTMLCanvasElement, geom: FaceGeom, o: IdOptions, adj: IdAdjust, scale = 1): HTMLCanvasElement {
+/**
+ * 실사 정장 사진 템플릿 (public/fun/suits/suits.json 에 등록 — 규격은 public/fun/suits/README.md)
+ * neck: 그림 속 목 가운데(셔츠 깃이 만나는 곳) 픽셀 좌표, shoulder: 양 어깨 끝 사이 픽셀 폭
+ */
+export interface SuitTemplate {
+  id: string;
+  name: string;
+  file: string;
+  neck: [number, number];
+  shoulder: number;
+}
+
+/** 등록된 정장 템플릿과 그림을 받아 둡니다 (없으면 빈 목록) */
+export async function loadSuitTemplates(): Promise<{ tpl: SuitTemplate; img: HTMLImageElement }[]> {
+  try {
+    const res = await fetch("/fun/suits/suits.json", { cache: "no-store" });
+    if (!res.ok) return [];
+    const list = (await res.json()) as SuitTemplate[];
+    const out = await Promise.all(
+      list.map(async (tpl) => {
+        const img = new Image();
+        img.src = `/fun/suits/${tpl.file}`;
+        try {
+          await img.decode();
+          return { tpl, img };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    return out.filter((x): x is { tpl: SuitTemplate; img: HTMLImageElement } => !!x);
+  } catch {
+    return [];
+  }
+}
+
+/** 옷 그리기 방식 — 기본은 그림 정장, 템플릿 사진 정장, 또는 AI 가 이미 입혀 둔 사진이면 그리지 않음 */
+export type OutfitLayer = { kind: "drawn" } | { kind: "template"; tpl: SuitTemplate; img: HTMLImageElement } | { kind: "none" };
+
+export function renderIdPhoto(
+  cutout: HTMLCanvasElement,
+  geom: FaceGeom,
+  o: IdOptions,
+  adj: IdAdjust,
+  scale = 1,
+  layer: OutfitLayer = { kind: "drawn" },
+): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = ID_W * scale;
   canvas.height = ID_H * scale;
@@ -98,7 +144,12 @@ export function renderIdPhoto(cutout: HTMLCanvasElement, geom: FaceGeom, o: IdOp
   const faceW = geom.width * S * k * adj.outfitScale;
   const neckX = dx + geom.cx * S * k;
   const neckY = dy + chin * S * k + faceW * 0.1 + adj.outfitY * ID_H;
-  drawOutfit(ctx, neckX, neckY, faceW, o);
+  if (layer.kind === "drawn") drawOutfit(ctx, neckX, neckY, faceW, o);
+  if (layer.kind === "template") {
+    // 어깨 폭 ≈ 얼굴 폭 3.9배 (그림 정장과 같은 비율), 목 가운데를 맞춰 붙입니다.
+    const k2 = (faceW * 3.9) / layer.tpl.shoulder;
+    ctx.drawImage(layer.img, neckX - layer.tpl.neck[0] * k2, neckY - faceW * 0.1 - layer.tpl.neck[1] * k2, layer.img.naturalWidth * k2, layer.img.naturalHeight * k2);
+  }
   return canvas;
 }
 

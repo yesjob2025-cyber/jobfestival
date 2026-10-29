@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CameraBox } from "@/components/fun/camera-box";
 import { QrSend } from "@/components/fun/qr-send";
 import { Options, RestartButton, Spinner, Title } from "@/components/fun/ui";
 import {
   BACKGROUNDS,
   DEFAULT_ADJUST,
+  loadSuitTemplates,
+  type OutfitLayer,
   DEFAULT_ID_OPTIONS,
   OUTFITS,
   renderIdPhoto,
@@ -16,19 +18,28 @@ import {
   type IdOptions,
 } from "@/lib/fun/id-photo";
 import { preloadVision, preparePhoto, type PreparedPhoto } from "@/lib/future-card/vision";
+import { aiAvailable, aiTransform } from "@/lib/fun/ai-image";
+
+type Templates = Awaited<ReturnType<typeof loadSuitTemplates>>;
 
 export function IdPhotoStudio() {
   const [prepared, setPrepared] = useState<PreparedPhoto | null>(null);
+  const [raw, setRaw] = useState<HTMLCanvasElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [opts, setOpts] = useState<IdOptions>(DEFAULT_ID_OPTIONS);
   const [adj, setAdj] = useState<IdAdjust>(DEFAULT_ADJUST);
 
   useEffect(() => {
     preloadVision().catch(() => {});
+    loadSuitTemplates().then(setTemplates);
+    aiAvailable().then(setAiOn);
   }, []);
+  const [templates, setTemplates] = useState<Templates>([]);
+  const [aiOn, setAiOn] = useState(false);
 
   async function onCapture(c: HTMLCanvasElement) {
     setBusy(true);
+    setRaw(c);
     setPrepared(await preparePhoto(c));
     setAdj(DEFAULT_ADJUST);
     setBusy(false);
@@ -49,10 +60,13 @@ export function IdPhotoStudio() {
         <CameraBox guide="bust" onCapture={onCapture} />
       </div>
     );
-  return <Editor prepared={prepared} opts={opts} setOpts={setOpts} adj={adj} setAdj={setAdj} onRetake={() => setPrepared(null)} onReset={reset} />;
+  return <Editor raw={raw} templates={templates} aiOn={aiOn} prepared={prepared} opts={opts} setOpts={setOpts} adj={adj} setAdj={setAdj} onRetake={() => setPrepared(null)} onReset={reset} />;
 }
 
 function Editor(props: {
+  raw: HTMLCanvasElement | null;
+  templates: Templates;
+  aiOn: boolean;
   prepared: PreparedPhoto;
   opts: IdOptions;
   setOpts: (o: IdOptions) => void;
@@ -61,8 +75,38 @@ function Editor(props: {
   onRetake: () => void;
   onReset: () => void;
 }) {
-  const { prepared, opts, adj } = props;
+  const { opts, adj, templates } = props;
   const [url, setUrl] = useState("");
+  // 옷: 그림 정장(기본) · 실사 템플릿 id · AI 실사 정장
+  const [tplId, setTplId] = useState<string | null>(null);
+  const [ai, setAi] = useState<{ prepared: PreparedPhoto; key: string } | null>(null);
+  const [aiUse, setAiUse] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const aiKey = `${opts.outfit}-${opts.suit}-${opts.tie}`;
+  const usingAi = aiUse && !!ai;
+  const prepared = usingAi ? ai.prepared : props.prepared;
+  const tpl = templates.find((t) => t.tpl.id === tplId);
+  const layer: OutfitLayer = useMemo(
+    () => (usingAi ? { kind: "none" } : tpl ? { kind: "template", tpl: tpl.tpl, img: tpl.img } : { kind: "drawn" }),
+    [usingAi, tpl],
+  );
+
+  async function makeAi() {
+    if (!props.raw || aiBusy) return;
+    if (ai && ai.key === aiKey) return setAiUse(true);
+    setAiBusy(true);
+    setAiError("");
+    try {
+      const out = await aiTransform(props.raw, { kind: "suit", outfit: opts.outfit, suit: opts.suit, tie: opts.tie });
+      setAi({ prepared: await preparePhoto(out), key: aiKey });
+      setAiUse(true);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "AI 이미지를 만들지 못했어요.");
+    } finally {
+      setAiBusy(false);
+    }
+  }
   const set = <K extends keyof IdOptions>(k: K, v: IdOptions[K]) => props.setOpts({ ...opts, [k]: v });
   const nudge = (d: Partial<IdAdjust>) =>
     props.setAdj({
@@ -72,8 +116,8 @@ function Editor(props: {
     });
 
   useEffect(() => {
-    setUrl(renderIdPhoto(prepared.photo, prepared.geom, opts, adj, 0.5).toDataURL("image/jpeg", 0.9));
-  }, [prepared, opts, adj]);
+    setUrl(renderIdPhoto(prepared.photo, prepared.geom, opts, adj, 0.5, layer).toDataURL("image/jpeg", 0.9));
+  }, [prepared, opts, adj, layer]);
 
   const hasTie = opts.outfit === "suitTie" || opts.outfit === "shirtTie";
   const btn = "fun-btn-white px-3 py-3 text-base";
@@ -90,16 +134,55 @@ function Editor(props: {
             <button type="button" className={btn} onClick={() => nudge({ zoom: 1.05 })}>🔍 얼굴 크게</button>
             <button type="button" className={btn} onClick={() => nudge({ zoom: 1 / 1.05 })}>🔍 얼굴 작게</button>
             <button type="button" className={btn} onClick={() => props.setAdj(DEFAULT_ADJUST)}>↩︎ 처음대로</button>
-            <button type="button" className={btn} onClick={() => nudge({ outfitY: -0.01 })}>👔 옷 위로</button>
-            <button type="button" className={btn} onClick={() => nudge({ outfitY: 0.01 })}>👔 옷 아래로</button>
-            <button type="button" className={btn} onClick={() => nudge({ outfitScale: 1.05 })}>👔 옷 크게</button>
+            {!usingAi && (
+              <>
+                <button type="button" className={btn} onClick={() => nudge({ outfitY: -0.01 })}>👔 옷 위로</button>
+                <button type="button" className={btn} onClick={() => nudge({ outfitY: 0.01 })}>👔 옷 아래로</button>
+                <button type="button" className={btn} onClick={() => nudge({ outfitScale: 1.05 })}>👔 옷 크게</button>
+              </>
+            )}
           </div>
         </div>
 
         <div className="space-y-6">
-          <Options title="👔 옷" items={OUTFITS} value={opts.outfit} onPick={(v) => set("outfit", v)} />
-          {opts.outfit !== "shirtTie" && <Options title="🎨 정장 색" items={SUIT_COLORS} value={opts.suit} onPick={(v) => set("suit", v)} />}
-          {hasTie && <Options title="👔 넥타이" items={TIE_COLORS} value={opts.tie} onPick={(v) => set("tie", v)} />}
+          {templates.length > 0 && (
+            <Options
+              title="📷 실사 정장 사진"
+              items={[{ id: "", name: "그림 정장 쓰기" }, ...templates.map((t) => ({ id: t.tpl.id, name: t.tpl.name }))]}
+              value={usingAi ? "-" : (tplId ?? "")}
+              onPick={(v) => {
+                setTplId(v || null);
+                setAiUse(false);
+              }}
+            />
+          )}
+          {!tpl && (
+            <>
+              <Options title="👔 옷" items={OUTFITS} value={opts.outfit} onPick={(v) => set("outfit", v)} />
+              {opts.outfit !== "shirtTie" && <Options title="🎨 정장 색" items={SUIT_COLORS} value={opts.suit} onPick={(v) => set("suit", v)} />}
+              {hasTie && <Options title="👔 넥타이" items={TIE_COLORS} value={opts.tie} onPick={(v) => set("tie", v)} />}
+            </>
+          )}
+          {props.aiOn && props.raw && !tpl && (
+            <section className="rounded-2xl border-2 border-dashed border-ocean/40 bg-white/70 p-4">
+              <h3 className="text-lg font-extrabold text-navy">✨ AI 실사 정장 (Google Gemini)</h3>
+              <p className="mt-1 text-xs text-ink-muted">
+                위에서 고른 옷 · 색 그대로 진짜 정장을 입은 사진으로 바꿔 줘요. 사진이 Google 서버로 전송돼요 (이 사이트는 저장하지 않아요). 10~20초 걸려요.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <button type="button" disabled={aiBusy} onClick={makeAi} className="fun-btn-navy py-3 text-lg disabled:opacity-60">
+                  {aiBusy ? "AI가 정장을 입히는 중…" : usingAi && ai?.key === aiKey ? "✅ AI 실사 정장 사용 중" : ai && ai.key !== aiKey ? "✨ 이 옷으로 다시 만들기" : "✨ AI 실사 정장 입히기"}
+                </button>
+                {usingAi && (
+                  <button type="button" disabled={aiBusy} onClick={() => setAiUse(false)} className="fun-btn-white py-3 text-lg">
+                    🎨 그림 정장으로 돌아가기
+                  </button>
+                )}
+              </div>
+              {usingAi && ai.key !== aiKey && <p className="mt-2 text-xs font-bold text-[#8A6A00]">옷을 바꿨어요 — 미리보기는 이전 AI 사진이에요. 다시 만들기를 눌러 주세요.</p>}
+              {aiError && <p className="mt-2 rounded-xl bg-sun/20 px-3 py-2 text-sm font-bold text-[#8A6A00]">{aiError}</p>}
+            </section>
+          )}
           <Options title="🖼️ 배경색" items={BACKGROUNDS} value={opts.bg} onPick={(v) => set("bg", v)} />
           <Options
             title="✨ 보정"
@@ -112,8 +195,8 @@ function Editor(props: {
           />
           <QrSend
             kind="image"
-            getImage={async () => renderIdPhoto(prepared.photo, prepared.geom, opts, adj, 1)}
-            resetKey={JSON.stringify(opts) + JSON.stringify(adj)}
+            getImage={async () => renderIdPhoto(prepared.photo, prepared.geom, opts, adj, 1, layer)}
+            resetKey={JSON.stringify(opts) + JSON.stringify(adj) + (tplId ?? "") + (usingAi ? ai.key : "")}
           />
           <p className="text-xs text-ink-muted">3:4 비율(900×1200)로 저장돼요. 공식 서류용이 아닌 이력서 · 프로필용 참고 사진이에요.</p>
           <div className="grid gap-3 sm:grid-cols-2">

@@ -75,6 +75,18 @@ export const PROPS = [
   { id: "hardhat", name: "안전모", emoji: "⛑️" },
   { id: "headset", name: "헤드셋", emoji: "🎧" },
   { id: "bowtie", name: "나비넥타이", emoji: "🎀" },
+  { id: "heartglasses", name: "하트 선글라스", emoji: "😍" },
+  { id: "hornrim", name: "뿔테 안경", emoji: "🤓" },
+  { id: "partyhat", name: "파티 고깔", emoji: "🥳" },
+  { id: "wizard", name: "마법사 모자", emoji: "🧙" },
+  { id: "beret", name: "베레모", emoji: "🎨" },
+  { id: "cap", name: "야구모자", emoji: "🧢" },
+  { id: "catears", name: "고양이 귀", emoji: "🐱" },
+  { id: "dogears", name: "강아지 귀", emoji: "🐶" },
+  { id: "bunny", name: "토끼 귀", emoji: "🐰" },
+  { id: "flowers", name: "꽃 머리띠", emoji: "🌸" },
+  { id: "pirate", name: "해적 안대", emoji: "🏴‍☠️" },
+  { id: "sparkle", name: "반짝반짝", emoji: "✨" },
 ] as const;
 
 export type FilterId = (typeof FILTERS)[number]["id"];
@@ -622,7 +634,365 @@ const PROP_FNS: Record<Exclude<PropId, "none">, (f: Frame) => void> = {
       ctx.fill();
     }
   },
+  heartglasses: ({ ctx, eye }) => {
+    const r = eye * 0.44;
+    ctx.strokeStyle = "#b0124f";
+    ctx.lineWidth = 0.03;
+    ctx.beginPath();
+    ctx.moveTo(-eye * 0.12, -r * 0.35);
+    ctx.quadraticCurveTo(0, -r * 0.6, eye * 0.12, -r * 0.35);
+    ctx.moveTo(-eye / 2 - r * 1.05, -r * 0.4);
+    ctx.lineTo(-eye / 2 - r * 1.05 - 0.12, -r * 0.25);
+    ctx.moveTo(eye / 2 + r * 1.05, -r * 0.4);
+    ctx.lineTo(eye / 2 + r * 1.05 + 0.12, -r * 0.25);
+    ctx.stroke();
+    for (const s of [-1, 1]) {
+      const cx = (s * eye) / 2;
+      heartPath(ctx, cx, -r * 0.1, r * 1.1);
+      const g = ctx.createLinearGradient(0, -r, 0, r);
+      g.addColorStop(0, "#ff5c9a");
+      g.addColorStop(1, "#c4105a");
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.lineWidth = 0.025;
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,255,255,0.55)";
+      ctx.beginPath();
+      ctx.ellipse(cx - r * 0.38, -r * 0.42, r * 0.16, r * 0.09, -0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  },
+
+  hornrim: ({ ctx, eye }) => {
+    const w = eye * 0.8;
+    const h = eye * 0.56;
+    ctx.fillStyle = "rgba(220,235,255,0.12)";
+    ctx.strokeStyle = "#2b1a12";
+    ctx.lineWidth = 0.05;
+    for (const s of [-1, 1]) {
+      roundRectPath(ctx, (s * eye) / 2 - w / 2, -h / 2, w, h, h * 0.3);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.lineWidth = 0.045;
+    ctx.beginPath();
+    ctx.moveTo(-eye / 2 + w / 2, -h * 0.15);
+    ctx.quadraticCurveTo(0, -h * 0.4, eye / 2 - w / 2, -h * 0.15);
+    ctx.moveTo(-eye / 2 - w / 2, -h * 0.3);
+    ctx.lineTo(-eye / 2 - w / 2 - 0.13, -h * 0.2);
+    ctx.moveTo(eye / 2 + w / 2, -h * 0.3);
+    ctx.lineTo(eye / 2 + w / 2 + 0.13, -h * 0.2);
+    ctx.stroke();
+  },
+
+  partyhat: hat(1.15, ({ ctx, top }) => {
+    const y = top + 0.02;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(-0.26, y);
+    ctx.lineTo(0.06, y - 0.78);
+    ctx.lineTo(0.3, y);
+    ctx.quadraticCurveTo(0.02, y + 0.06, -0.26, y);
+    ctx.closePath();
+    ctx.fillStyle = rgb(SKY);
+    ctx.fill();
+    ctx.clip();
+    ctx.fillStyle = rgb(YELLOW);
+    for (let k = 0; k < 5; k++) {
+      ctx.save();
+      ctx.translate(0, y - k * 0.17);
+      ctx.rotate(-0.3);
+      ctx.fillRect(-0.6, -0.03, 1.2, 0.06);
+      ctx.restore();
+    }
+    ctx.fillStyle = rgb(PINK);
+    for (const [x, yy] of [[-0.08, y - 0.12], [0.14, y - 0.3], [0.0, y - 0.46], [0.16, y - 0.08]]) {
+      ctx.beginPath();
+      ctx.arc(x, yy, 0.03, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+    // 방울
+    ctx.fillStyle = rgb(PINK);
+    for (let k = 0; k < 8; k++) {
+      const a = (k * Math.PI) / 4;
+      ctx.beginPath();
+      ctx.ellipse(0.06 + Math.cos(a) * 0.05, y - 0.8 + Math.sin(a) * 0.05, 0.05, 0.03, a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(0.06, y - 0.8, 0.035, 0, Math.PI * 2);
+    ctx.fill();
+  }),
+
+  wizard: hat(1.25, ({ ctx, top }) => {
+    const y = top + 0.02;
+    const g = ctx.createLinearGradient(0, y - 0.9, 0, y);
+    g.addColorStop(0, "#5b3cc4");
+    g.addColorStop(1, "#2a1a78");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-0.36, y - 0.04);
+    ctx.quadraticCurveTo(-0.1, y - 0.5, 0.18, y - 0.92);
+    ctx.quadraticCurveTo(0.34, y - 0.86, 0.38, y - 0.76);
+    ctx.quadraticCurveTo(0.2, y - 0.6, 0.36, y - 0.04);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#24166a";
+    ctx.beginPath();
+    ctx.ellipse(0, y, 0.66, 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = rgb(YELLOW);
+    ctx.fillRect(-0.34, y - 0.14, 0.7, 0.07);
+    for (const [x, yy, r] of [[-0.08, y - 0.4, 0.06], [0.14, y - 0.62, 0.045], [0.12, y - 0.26, 0.04]]) starPath(ctx, x, yy, r);
+    ctx.fillStyle = "#fff6c0";
+    ctx.beginPath();
+    ctx.arc(-0.18, y - 0.22, 0.05, Math.PI * 0.35, Math.PI * 1.65);
+    ctx.arc(-0.15, y - 0.22, 0.04, Math.PI * 1.6, Math.PI * 0.4, true);
+    ctx.fill();
+  }),
+
+  beret: hat(1.15, ({ ctx, top }) => {
+    const y = top + 0.04;
+    const g = ctx.createRadialGradient(-0.1, y - 0.3, 0.05, 0, y - 0.18, 0.6);
+    g.addColorStop(0, "#e2384f");
+    g.addColorStop(1, "#8f1226");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.ellipse(-0.06, y - 0.2, 0.56, 0.2, -0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#7a0f20";
+    ctx.beginPath();
+    ctx.ellipse(0, y - 0.03, 0.4, 0.06, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#7a0f20";
+    ctx.lineWidth = 0.035;
+    ctx.beginPath();
+    ctx.moveTo(-0.02, y - 0.38);
+    ctx.lineTo(0.02, y - 0.46);
+    ctx.stroke();
+  }),
+
+  cap: hat(1.2, ({ ctx, top }) => {
+    const y = top + 0.06;
+    const g = ctx.createLinearGradient(0, y - 0.5, 0, y);
+    g.addColorStop(0, rgb(NAVY));
+    g.addColorStop(1, rgb(NAVY_DEEP));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(-0.44, y);
+    ctx.bezierCurveTo(-0.46, y - 0.56, 0.46, y - 0.56, 0.44, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
+    ctx.lineWidth = 0.015;
+    ctx.beginPath();
+    ctx.moveTo(0, y - 0.42);
+    ctx.lineTo(0, y - 0.02);
+    ctx.stroke();
+    // 챙
+    ctx.fillStyle = rgb(NAVY_DEEP);
+    ctx.beginPath();
+    ctx.moveTo(-0.44, y - 0.02);
+    ctx.quadraticCurveTo(0, y + 0.22, 0.44, y - 0.02);
+    ctx.quadraticCurveTo(0, y + 0.06, -0.44, y - 0.02);
+    ctx.fill();
+    ctx.fillStyle = rgb(YELLOW);
+    ctx.beginPath();
+    ctx.arc(0, y - 0.47, 0.035, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = "700 0.17px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = rgb(YELLOW);
+    ctx.fillText("KDU", 0, y - 0.2);
+  }),
+
+  catears: hat(1.1, ({ ctx, top }) => {
+    const y = top + 0.04;
+    headband(ctx, y, "#2b2b33");
+    for (const s of [-1, 1]) {
+      ctx.fillStyle = "#2b2b33";
+      ctx.beginPath();
+      ctx.moveTo(s * 0.16, y - 0.2);
+      ctx.lineTo(s * 0.36, y - 0.54);
+      ctx.lineTo(s * 0.46, y - 0.12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#ff9ec0";
+      ctx.beginPath();
+      ctx.moveTo(s * 0.23, y - 0.2);
+      ctx.lineTo(s * 0.35, y - 0.43);
+      ctx.lineTo(s * 0.41, y - 0.17);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }),
+
+  dogears: ({ ctx, top, nose }) => {
+    for (const s of [-1, 1]) {
+      ctx.fillStyle = "#8a5a3c";
+      ctx.beginPath();
+      ctx.moveTo(s * 0.3, top + 0.02);
+      ctx.bezierCurveTo(s * 0.62, top - 0.06, s * 0.72, top + 0.42, s * 0.56, top + 0.62);
+      ctx.bezierCurveTo(s * 0.46, top + 0.7, s * 0.4, top + 0.4, s * 0.38, top + 0.18);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#b07a52";
+      ctx.beginPath();
+      ctx.ellipse(s * 0.52, top + 0.32, 0.06, 0.16, s * -0.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // 코
+    ctx.fillStyle = "#221812";
+    ctx.beginPath();
+    ctx.ellipse(0, nose - 0.01, 0.09, 0.06, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.beginPath();
+    ctx.ellipse(-0.03, nose - 0.035, 0.025, 0.014, 0, 0, Math.PI * 2);
+    ctx.fill();
+  },
+
+  bunny: hat(1.1, ({ ctx, top }) => {
+    const y = top + 0.04;
+    headband(ctx, y, "#f4f4f8");
+    for (const s of [-1, 1]) {
+      ctx.save();
+      ctx.translate(s * 0.18, y - 0.18);
+      ctx.rotate(s * 0.18);
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "#dcdce6";
+      ctx.lineWidth = 0.015;
+      ctx.beginPath();
+      ctx.ellipse(0, -0.34, 0.11, 0.36, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#ffb3cc";
+      ctx.beginPath();
+      ctx.ellipse(0, -0.32, 0.055, 0.27, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }),
+
+  flowers: hat(1.05, ({ ctx, top }) => {
+    const y = top + 0.06;
+    ctx.strokeStyle = "#3d9a52";
+    ctx.lineWidth = 0.035;
+    ctx.beginPath();
+    ctx.ellipse(0, y, 0.48, 0.14, 0, Math.PI, Math.PI * 2);
+    ctx.stroke();
+    const colors = ["#ff6fa5", "#ffd21e", "#ffffff", "#9d8cff", "#ff8a4c"];
+    for (let k = 0; k <= 8; k++) {
+      const a = Math.PI + (k * Math.PI) / 8;
+      const x = Math.cos(a) * 0.48;
+      const yy = y + Math.sin(a) * 0.14;
+      const r = k % 2 ? 0.055 : 0.075;
+      if (k % 2) {
+        ctx.fillStyle = "#4caf63";
+        ctx.beginPath();
+        ctx.ellipse(x, yy - 0.02, r * 0.5, r * 1.1, a + Math.PI / 2, 0, Math.PI * 2);
+        ctx.fill();
+        continue;
+      }
+      ctx.fillStyle = colors[(k / 2) % colors.length];
+      for (let p = 0; p < 5; p++) {
+        const pa = (p * Math.PI * 2) / 5;
+        ctx.beginPath();
+        ctx.arc(x + Math.cos(pa) * r * 0.7, yy + Math.sin(pa) * r * 0.7, r * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = "#ffc400";
+      ctx.beginPath();
+      ctx.arc(x, yy, r * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }),
+
+  pirate: ({ ctx, eye, top }) => {
+    ctx.strokeStyle = "#111";
+    ctx.lineWidth = 0.025;
+    ctx.beginPath();
+    ctx.moveTo(-0.52, top + 0.2);
+    ctx.lineTo(eye / 2, -0.02);
+    ctx.lineTo(0.56, 0.08);
+    ctx.stroke();
+    ctx.fillStyle = "#111";
+    ctx.beginPath();
+    ctx.ellipse(eye / 2, 0.01, eye * 0.42, eye * 0.36, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 해골 표시
+    ctx.fillStyle = "#f2f2f2";
+    ctx.beginPath();
+    ctx.arc(eye / 2, -0.005, eye * 0.11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#111";
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(eye / 2 + s * eye * 0.045, -0.01, eye * 0.03, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  },
+
+  sparkle: ({ ctx, top, mouth }) => {
+    const pts: [number, number, number, RGB][] = [
+      [-0.62, top + 0.1, 0.09, YELLOW],
+      [0.6, top + 0.02, 0.07, SKY_PALE],
+      [0.66, mouth - 0.1, 0.08, YELLOW],
+      [-0.66, mouth - 0.2, 0.06, PINK],
+      [-0.36, top - 0.18, 0.05, SKY_PALE],
+      [0.34, top - 0.22, 0.06, PINK],
+    ];
+    for (const [x, y, r, c] of pts) {
+      ctx.fillStyle = rgb(c);
+      ctx.beginPath();
+      ctx.moveTo(x, y - r * 1.6);
+      ctx.quadraticCurveTo(x, y, x + r * 1.6, y);
+      ctx.quadraticCurveTo(x, y, x, y + r * 1.6);
+      ctx.quadraticCurveTo(x, y, x - r * 1.6, y);
+      ctx.quadraticCurveTo(x, y, x, y - r * 1.6);
+      ctx.fill();
+    }
+    // 볼 터치
+    ctx.fillStyle = "rgba(255,111,165,0.35)";
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.ellipse(s * 0.3, mouth - 0.12, 0.09, 0.05, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  },
 };
+
+function heartPath(ctx: Ctx, cx: number, cy: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + r * 0.75);
+  ctx.bezierCurveTo(cx - r * 1.2, cy - r * 0.05, cx - r * 0.55, cy - r * 0.9, cx, cy - r * 0.35);
+  ctx.bezierCurveTo(cx + r * 0.55, cy - r * 0.9, cx + r * 1.2, cy - r * 0.05, cx, cy + r * 0.75);
+  ctx.closePath();
+}
+
+/** 별 하나를 칠합니다 */
+function starPath(ctx: Ctx, x: number, y: number, r: number) {
+  ctx.beginPath();
+  for (let k = 0; k < 10; k++) {
+    const rr = k % 2 ? r * 0.45 : r;
+    const a = -Math.PI / 2 + (k * Math.PI) / 5;
+    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** 머리띠 (귀 소품 공통) */
+function headband(ctx: Ctx, y: number, color: string) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 0.05;
+  ctx.beginPath();
+  ctx.ellipse(0, y, 0.47, 0.2, 0, Math.PI * 1.05, Math.PI * 1.95);
+  ctx.stroke();
+}
 
 /** 챙 달린 모자 (캡틴 · 경찰) */
 function peakedCap(ctx: Ctx, faceTop: number, topColor: string, bandColor: string, badge: "anchor" | "star") {

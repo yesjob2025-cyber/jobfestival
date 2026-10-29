@@ -20,6 +20,7 @@ import { BRANDS, futureYear, type BrandId, type FutureCardBrand } from "@/lib/fu
 import { EMPTY_INFO, RANKS, randomInfo, type CardInfo } from "@/lib/future-card/presets";
 import { uploadCard } from "@/lib/future-card/share";
 import { preparePhoto, type PreparedPhoto } from "@/lib/future-card/vision";
+import { AI_STYLES, aiAvailable, aiTransform, type AiStyleId } from "@/lib/fun/ai-image";
 
 const STEPS = ["사진 촬영", "얼굴 스타일", "명함 내용", "명함 디자인", "완성"] as const;
 
@@ -39,6 +40,17 @@ export function FutureCardStudio({ brand = "kmou" }: { brand?: BrandId }) {
   const [place, setPlace] = useState<Placement>(DEFAULT_PLACEMENT);
   const [info, setInfo] = useState<CardInfo>(EMPTY_INFO);
   const [design, setDesign] = useState<CardDesignId>(firstDesign);
+  // AI 스타일 — 찍은 사진 원본과, 스타일별로 한 번 만든 결과를 기억해 둡니다 (같은 걸 다시 부르지 않게)
+  const [source, setSource] = useState<{ raw: HTMLCanvasElement; prepared: PreparedPhoto } | null>(null);
+  const [aiCache, setAiCache] = useState<Partial<Record<AiStyleId, PreparedPhoto>>>({});
+  const [aiStyle, setAiStyle] = useState<AiStyleId | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [aiOn, setAiOn] = useState(false);
+
+  useEffect(() => {
+    aiAvailable().then(setAiOn);
+  }, []);
 
   // 필터는 무거워서 따로 기억해 두고, 소품을 옮길 때는 소품만 다시 그립니다.
   const filtered = useMemo(
@@ -58,6 +70,10 @@ export function FutureCardStudio({ brand = "kmou" }: { brand?: BrandId }) {
   /** 다음 방문객을 위해 모든 입력을 지웁니다. */
   function reset() {
     setPrepared(null);
+    setSource(null);
+    setAiCache({});
+    setAiStyle(null);
+    setAiError("");
     setFaceStyle(DEFAULT_STYLE);
     setPlace(DEFAULT_PLACEMENT);
     setInfo(EMPTY_INFO);
@@ -70,9 +86,39 @@ export function FutureCardStudio({ brand = "kmou" }: { brand?: BrandId }) {
     setProcessing(true);
     const p = await preparePhoto(c);
     setPrepared(p);
+    setSource({ raw: c, prepared: p });
+    setAiCache({});
+    setAiStyle(null);
+    setAiError("");
     setPlace(DEFAULT_PLACEMENT);
     setProcessing(false);
     go(1);
+  }
+
+  /** AI 스타일 고르기 (null = 원래 사진) — 결과도 배경을 지우고 얼굴을 다시 찾습니다. */
+  async function pickAi(id: AiStyleId | null) {
+    if (!source || aiBusy) return;
+    setAiError("");
+    const cached = id ? aiCache[id] : source.prepared;
+    if (cached) {
+      setPrepared(cached);
+      setAiStyle(id);
+      setPlace(DEFAULT_PLACEMENT);
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const out = await aiTransform(source.raw, { kind: "style", style: id! });
+      const p = await preparePhoto(out);
+      setAiCache((c) => ({ ...c, [id!]: p }));
+      setPrepared(p);
+      setAiStyle(id);
+      setPlace(DEFAULT_PLACEMENT);
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : "AI 이미지를 만들지 못했어요.");
+    } finally {
+      setAiBusy(false);
+    }
   }
 
   return (
@@ -102,6 +148,7 @@ export function FutureCardStudio({ brand = "kmou" }: { brand?: BrandId }) {
               onPlace={setPlace}
               onRetake={() => go(0)}
               onNext={() => go(2)}
+              ai={aiOn ? { style: aiStyle, busy: aiBusy, error: aiError, cached: Object.keys(aiCache), onPick: pickAi } : null}
             />
           )}
 
@@ -191,8 +238,9 @@ function FaceStep(props: {
   onPlace: (p: Placement) => void;
   onRetake: () => void;
   onNext: () => void;
+  ai: { style: AiStyleId | null; busy: boolean; error: string; cached: string[]; onPick: (id: AiStyleId | null) => void } | null;
 }) {
-  const { prepared, face, style, place, onStyle, onPlace } = props;
+  const { prepared, face, style, place, onStyle, onPlace, ai } = props;
   // 필터 견본은 소품 없이, 소품 견본은 지금 필터 위에 (작게 만든 사진으로)
   const filterThumbs = useMemo(
     () => FILTERS.map((f) => ({ ...f, url: applyFilter(prepared.photo, f.id, 180).toDataURL("image/png") })),
@@ -249,6 +297,7 @@ function FaceStep(props: {
         </div>
 
         <div className="space-y-8">
+          {ai && <AiSection ai={ai} />}
           <ThumbGrid
             title="🎨 필터"
             items={filterThumbs.map((f) => ({ key: f.id, url: f.url, name: f.name, desc: f.desc }))}
@@ -269,6 +318,39 @@ function FaceStep(props: {
         </div>
       </div>
     </>
+  );
+}
+
+function AiSection({ ai }: { ai: NonNullable<Parameters<typeof FaceStep>[0]["ai"]> }) {
+  const chip = (on: boolean) =>
+    `rounded-2xl border-2 px-3 py-2.5 text-left text-sm font-extrabold transition disabled:opacity-50 ${
+      on ? "border-ocean bg-ocean-mist text-navy ring-4 ring-ocean/20" : "border-ink-line bg-white text-navy hover:border-ocean/50"
+    }`;
+  return (
+    <section>
+      <h3 className="text-lg font-extrabold text-navy">✨ AI 스타일 (Google Gemini)</h3>
+      <p className="mb-3 mt-1 text-xs text-ink-muted">
+        고르면 사진이 AI 이미지 생성을 위해 Google 서버로 전송돼요 (이 사이트는 저장하지 않아요). 한 장에 10~20초 걸려요.
+      </p>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+        <button type="button" disabled={ai.busy} onClick={() => ai.onPick(null)} className={chip(ai.style === null)}>
+          📷 원래 사진
+        </button>
+        {AI_STYLES.map((s) => (
+          <button key={s.id} type="button" disabled={ai.busy} onClick={() => ai.onPick(s.id)} className={chip(ai.style === s.id)}>
+            {s.emoji} {s.name}
+            {ai.cached.includes(s.id) && <span className="ml-1 text-[11px] text-ocean">✓</span>}
+          </button>
+        ))}
+      </div>
+      {ai.busy && (
+        <p className="mt-3 flex items-center gap-2 rounded-xl bg-ocean-mist px-3 py-2 text-sm font-bold text-navy">
+          <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-ocean/30 border-t-ocean" />
+          AI가 그리는 중이에요… 잠시만 기다려 주세요
+        </p>
+      )}
+      {ai.error && <p className="mt-3 rounded-xl bg-sun/20 px-3 py-2 text-sm font-bold text-[#8A6A00]">{ai.error}</p>}
+    </section>
   );
 }
 
