@@ -60,3 +60,19 @@ export function RestartButton({ onClick, label = "🙋 다음 분 시작하기 (
     </button>
   );
 }
+
+/** 칩 모양 선택지 (프레임 · 배경 · 옷 색 등) */
+export function Options<T extends string>({ title, items, value, onPick }: { title: string; items: readonly { id: T; name: string }[]; value: T; onPick: (v: T) => void }) {
+  return (
+    <div>
+      <p className="mb-2 font-jua text-xl text-kdu-navy">{title}</p>
+      <div className="flex flex-wrap gap-2">
+        {items.map((it) => (
+          <button key={it.id} type="button" onClick={() => onPick(it.id)} className={it.id === value ? "fun-chip-on" : "fun-chip-off"} aria-pressed={it.id === value}>
+            {it.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { QrSend } from "@/components/fun/qr-send";
-import { RestartButton, Title } from "@/components/fun/ui";
+import { Options, RestartButton, Title } from "@/components/fun/ui";
 import { countdown, snapSquare, useCamera, type Facing } from "@/components/fun/use-camera";
 import { loadCardAssets } from "@/lib/fun/assets";
 import { BACKS, FOUR_FILTERS, FRAMES, renderFourCut, type BackId, type FrameId, type Shot } from "@/lib/fun/four-cut";
@@ -188,21 +188,6 @@ function Editor(props: {
           </button>
           <RestartButton onClick={props.onReset} label="🙋 다음 분 (처음으로)" />
         </div>
-      </div>
-    </div>
-  );
-}
-
-function Options<T extends string>({ title, items, value, onPick }: { title: string; items: readonly { id: T; name: string }[]; value: T; onPick: (v: T) => void }) {
-  return (
-    <div>
-      <p className="mb-2 font-jua text-xl text-kdu-navy">{title}</p>
-      <div className="flex flex-wrap gap-2">
-        {items.map((it) => (
-          <button key={it.id} type="button" onClick={() => onPick(it.id)} className={it.id === value ? "fun-chip-on" : "fun-chip-off"} aria-pressed={it.id === value}>
-            {it.name}
-          </button>
-        ))}
       </div>
     </div>
   );
