@@ -36,14 +36,33 @@ export function drawPalm(photo: HTMLCanvasElement, lm: Pt[], reading: Reading, w
   ctx.fillRect(0, 0, 720, 720);
 
   for (const id of LINES) {
-    const [a, b, c] = linePath(id, reading.lines[id]).map(([u, v]) => f.at(u, v));
-    const width = Math.max(5, f.W * (0.03 + reading.lines[id] * 0.01));
-    glowStroke(ctx, a, b, c, LINE_COLORS[id], width);
+    // 실제 주름 위에는 조금 가늘게 (주름이 비쳐 보이게)
+    const found = reading.paths?.[id];
+    const width = Math.max(4, f.W * (found ? 0.018 + reading.lines[id] * 0.006 : 0.03 + reading.lines[id] * 0.01));
+    if (found && found.length > 1) {
+      const pts = found.map(([u, v]) => f.at(u, v));
+      glowStroke(ctx, (c) => polyline(c, pts), LINE_COLORS[id], width);
+    } else {
+      const [a, b, c] = linePath(id, reading.lines[id]).map(([u, v]) => f.at(u, v));
+      glowStroke(ctx, (cx) => {
+        cx.moveTo(a.x, a.y);
+        cx.quadraticCurveTo(b.x * 2 - (a.x + c.x) / 2, b.y * 2 - (a.y + c.y) / 2, c.x, c.y);
+      }, LINE_COLORS[id], width);
+    }
   }
   return out;
 }
 
-function glowStroke(ctx: Ctx, a: Pt, b: Pt, c: Pt, color: string, width: number) {
+/** 점들을 부드럽게 잇기 (가운데 점 기준 2차 곡선) */
+function polyline(ctx: Ctx, p: Pt[]) {
+  ctx.moveTo(p[0].x, p[0].y);
+  for (let i = 1; i < p.length - 1; i++) {
+    ctx.quadraticCurveTo(p[i].x, p[i].y, (p[i].x + p[i + 1].x) / 2, (p[i].y + p[i + 1].y) / 2);
+  }
+  ctx.lineTo(p[p.length - 1].x, p[p.length - 1].y);
+}
+
+function glowStroke(ctx: Ctx, path: (ctx: Ctx) => void, color: string, width: number) {
   ctx.save();
   ctx.lineCap = "round";
   ctx.strokeStyle = color;
@@ -57,8 +76,7 @@ function glowStroke(ctx: Ctx, a: Pt, b: Pt, c: Pt, color: string, width: number)
     ctx.lineWidth = w;
     ctx.shadowBlur = blur;
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.quadraticCurveTo(b.x * 2 - (a.x + c.x) / 2, b.y * 2 - (a.y + c.y) / 2, c.x, c.y);
+    path(ctx);
     ctx.stroke();
   }
   // 가운데 하얀 심
@@ -67,8 +85,7 @@ function glowStroke(ctx: Ctx, a: Pt, b: Pt, c: Pt, color: string, width: number)
   ctx.strokeStyle = "#ffffff";
   ctx.lineWidth = width * 0.35;
   ctx.beginPath();
-  ctx.moveTo(a.x, a.y);
-  ctx.quadraticCurveTo(b.x * 2 - (a.x + c.x) / 2, b.y * 2 - (a.y + c.y) / 2, c.x, c.y);
+  path(ctx);
   ctx.stroke();
   ctx.restore();
 }

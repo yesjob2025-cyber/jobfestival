@@ -23,10 +23,15 @@ export function CameraBox(props: {
   defaultFacing?: Facing;
   buttonLabel?: string;
   note?: string;
+  /** 더 큰 카메라 해상도 요청 */
+  hd?: boolean;
+  /** 사진 파일을 자르지 않고 넣기 (스캔 이미지) */
+  fileFit?: "cover" | "contain";
+  fileLabel?: string;
 }) {
   const size = props.size ?? 720;
   const [facing, setFacing] = useState<Facing>(props.defaultFacing ?? "user");
-  const { videoRef, ready, error } = useCamera({ facing });
+  const { videoRef, ready, error } = useCamera({ facing, hd: props.hd });
   const [count, setCount] = useState(0);
   const [flash, setFlash] = useState(false);
   const mirrored = facing === "user";
@@ -77,14 +82,15 @@ export function CameraBox(props: {
         </button>
       </div>
       <label className="fun-btn-white mt-3 w-full cursor-pointer py-3">
-        🖼️ 사진 파일 선택
+        {props.fileLabel ?? "🖼️ 사진 파일 선택"}
         <input
           type="file"
           accept="image/*"
           className="sr-only"
           onChange={async (e) => {
             const f = e.target.files?.[0];
-            if (f) props.onCapture(await fileToSquare(f, size));
+            if (f) props.onCapture(await fileToSquare(f, size, props.fileFit));
+            e.target.value = "";
           }}
         />
       </label>

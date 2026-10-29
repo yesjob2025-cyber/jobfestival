@@ -1,7 +1,8 @@
 // ─────────────────────────────────────────────────────────────
 // 취업 손금 — 손 마디 21곳(MediaPipe Hand Landmarker)으로 손 모양을 재고,
 // 손바닥 좌표에 맞춰 생명선 · 두뇌선 · 감정선 · 운명선을 그려 풀이합니다. (재미로 보는 손금)
-// 실제 주름을 읽는 게 아니라 손 모양 비율로 풀이하며, 모든 풀이는 긍정적으로 씁니다.
+// 선은 사진에서 실제 주름을 찾아 그리고(palm-crease.ts), 주름이 안 보이면 손 비율로 정한 자리에 그립니다.
+// 모든 풀이는 긍정적으로 씁니다.
 // ─────────────────────────────────────────────────────────────
 
 export type Pt = { x: number; y: number };
@@ -31,6 +32,8 @@ export interface Reading {
   thumbOpen: boolean;
   /** 각 선의 세기 1~3 */
   lines: { life: number; head: number; heart: number; fate: number };
+  /** 사진에서 찾은 실제 주름 (손바닥 좌표) — 선이 흐리면 빠지고 템플릿 선으로 그립니다 */
+  paths?: Partial<Record<LineId, [number, number][]>>;
 }
 
 export const LINE_TEXT = {
@@ -49,7 +52,8 @@ export const TRAITS = {
 const d = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
 const chain = (lm: Pt[], ids: number[]) => ids.slice(1).reduce((s, id, i) => s + d(lm[ids[i]], lm[id]), 0);
 
-export function readPalm(lm: Pt[]): Reading {
+/** creases: 사진에서 찾은 주름 (detected 일 때만 세기 · 모양에 씁니다) */
+export function readPalm(lm: Pt[], creases?: { detected: boolean; lines: Record<LineId, { path: [number, number][]; strength: number; score: number }> }): Reading {
   const L = d(lm[0], lm[9]);
   const W = d(lm[5], lm[17]);
   const middle = chain(lm, [9, 10, 11, 12]);
@@ -64,6 +68,17 @@ export function readPalm(lm: Pt[]): Reading {
 
   // 선의 세기 — 손 비율에서 정하고, 같은 손이면 같은 결과가 나오게 좌표로 섞어 줍니다.
   const mix = (v: number) => 1 + (Math.floor(Math.abs(v) * 1000) % 3);
+  if (creases?.detected) {
+    const c = creases.lines;
+    return {
+      type,
+      indexLong: index > ring * 1.0,
+      thumbOpen: thumbSpread > 1.05,
+      lines: { life: c.life.strength, head: c.head.strength, heart: c.heart.strength, fate: c.fate.score > 0.6 ? c.fate.strength : 1 },
+      // 운명선처럼 흐린 선은 템플릿 자리에 가늘게
+      paths: Object.fromEntries((Object.keys(c) as LineId[]).filter((id) => c[id].score > 0.6).map((id) => [id, c[id].path])),
+    };
+  }
   return {
     type,
     indexLong: index > ring * 1.0,

@@ -7,6 +7,7 @@ import { RestartButton, Spinner, Title } from "@/components/fun/ui";
 import { loadCardAssets } from "@/lib/fun/assets";
 import { HAND_TYPES, LINE_COLORS, LINE_TEXT, readPalm, TRAITS, type Reading } from "@/lib/fun/palm";
 import { drawPalm, renderPalmResult } from "@/lib/fun/palm-draw";
+import { findCreases } from "@/lib/fun/palm-crease";
 import { loadHandLandmarker } from "@/lib/future-card/vision";
 
 interface Scan {
@@ -35,7 +36,13 @@ export function PalmReader() {
         setError("손을 찾지 못했어요. 손바닥을 활짝 펴서 화면 가운데에 비춰 주세요.");
         return;
       }
-      const reading = readPalm(lm);
+      let creases;
+      try {
+        creases = findCreases(photo, lm);
+      } catch (e) {
+        console.warn("palm crease:", e);
+      }
+      const reading = readPalm(lm, creases);
       setScan({ plain: drawPalm(photo, lm, reading, false).toDataURL("image/jpeg", 0.9), lined: drawPalm(photo, lm, reading), reading });
     } catch {
       setError("손을 분석하지 못했어요. 인터넷 연결을 확인하고 다시 찍어 주세요.");
@@ -61,7 +68,40 @@ export function PalmReader() {
         </label>
         {error && <p className="mt-3 rounded-xl bg-kdu-pink/10 px-4 py-3 font-bold text-kdu-pink">{error}</p>}
       </div>
-      <CameraBox guide="hand" onCapture={onCapture} buttonLabel="✋ 손금 찍기 (3초 후)" />
+      <CameraBox
+        guide="hand"
+        onCapture={onCapture}
+        buttonLabel="✋ 손금 찍기 (3초 후)"
+        size={1440}
+        hd
+        fileFit="contain"
+        fileLabel="🖨️ 스캐너 · 사진 파일로 올리기"
+      />
+      <Tips />
+    </div>
+  );
+}
+
+/** 손금이 잘 찍히는 요령 (카메라 · 평판 스캐너) */
+function Tips() {
+  return (
+    <div className="mx-auto mt-6 grid max-w-xl gap-3 text-[15px] leading-relaxed text-ink sm:grid-cols-2">
+      <section className="rounded-2xl bg-white/80 p-4 shadow-sm">
+        <h3 className="mb-1 font-jua text-lg text-kdu-navy">📷 카메라로 찍을 때</h3>
+        <ul className="list-disc space-y-1 pl-5">
+          <li>밝은 곳에서, 빛이 손바닥 <b>옆에서</b> 비치게</li>
+          <li>손바닥을 <b>살짝 오므리면</b> 주름이 진해져요</li>
+          <li>손을 화면 가득 — 손목까지 나오게</li>
+        </ul>
+      </section>
+      <section className="rounded-2xl bg-white/80 p-4 shadow-sm">
+        <h3 className="mb-1 font-jua text-lg text-kdu-navy">🖨️ 평판 스캐너 (가장 정확)</h3>
+        <ul className="list-disc space-y-1 pl-5">
+          <li><b>컬러 · 300dpi</b> 로 손바닥을 유리에 <b>가볍게</b> 올려 스캔</li>
+          <li>덮개 대신 <b>어두운 천</b>을 손 위에 덮으면 깔끔해요</li>
+          <li>JPG 로 저장 → 위 <b>스캐너 · 사진 파일로 올리기</b></li>
+        </ul>
+      </section>
     </div>
   );
 }
@@ -104,6 +144,13 @@ function Result({ scan, name, onReset }: { scan: Scan; name: string; onReset: ()
             <img src={lined} alt="손금이 그려진 손" className="absolute inset-0 h-full w-full animate-[palm-reveal_2.4s_ease-out_forwards]" />
             {!scanned && <div className="absolute inset-x-0 h-16 animate-[palm-beam_2.4s_ease-out_forwards] bg-gradient-to-b from-transparent via-kdu-yellow/60 to-transparent" />}
           </div>
+          {scanned && (
+            <p className={`mt-4 rounded-xl px-3 py-2 text-sm font-bold ${scan.reading.paths ? "bg-[#E6F8EE] text-[#1F7A47]" : "bg-kdu-yellow/25 text-[#8A6A00]"}`}>
+              {scan.reading.paths
+                ? "✅ 사진에서 실제 손금 주름을 찾아 그렸어요"
+                : "주름이 잘 안 보여 손 모양으로 손금 자리를 그렸어요 — 밝은 곳이나 스캐너로 다시 해 보세요"}
+            </p>
+          )}
           {scanned && (
             <ul className="mt-4 space-y-2">
               {(Object.keys(LINE_TEXT) as (keyof typeof LINE_TEXT)[]).map((id) => (
