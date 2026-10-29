@@ -23,7 +23,7 @@ export function EventTile({ event }: { event: FunEvent }) {
   return (
     <Link
       href={`/fun/${event.slug}`}
-      className="kdu-card flex flex-col items-center gap-2 p-6 text-center transition hover:-translate-y-1 hover:shadow-[0_14px_0_-2px_rgba(11,42,120,0.25)]"
+      className="kdu-card flex h-full flex-col items-center gap-2 p-6 text-center transition hover:-translate-y-1 hover:shadow-[0_14px_0_-2px_rgba(11,42,120,0.25)]"
     >
       <span className="text-6xl">{event.emoji}</span>
       <span className="font-jua text-2xl text-kdu-navy-deep">{event.name}</span>

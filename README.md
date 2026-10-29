@@ -21,6 +21,8 @@
 | `/companies/[id]` | 기업 상세 — 부스번호·분류·업종, 채용설명회/멘토링 연계, 이전·다음 기업 |
 | `/program` | 행사 프로그램 — 채용설명회 시간표, 동문 멘토, 부대 이벤트 |
 | `/future-card` | 부스 이벤트 **미래 명함 만들기** — 사진 촬영 → 얼굴 스타일 10종 → 명함 내용 → 디자인 6종 → PNG 저장 · 인쇄 |
+| `/fun` | **부대행사 사이트** — 이벤트 8가지를 각각 독립된 주소로 (`/fun/future-card` · `tarot` · `palm` · `four-cut` · `id-photo` · `intro` · `animal` · `job-type`) |
+| `/fun/r` · `/fun/v` | 부대행사 결과 이미지 · 자기소개 영상을 QR 로 받는 페이지 |
 | `/kdu` | **2026학년도 경동대학교 Fun Fun Job Festival** 메인 (포스터 시안 기준, 별도 머리글 · 바닥글) |
 | `/kdu/future-card` | 경동대용 미래 명함 만들기 — 명함에 `KDU` 표기, 경동대용 회사 · 직무 · 한마디 |
 
@@ -90,6 +92,7 @@ npm run build    # 프로덕션 빌드
 | `src/lib/future-card/brand.ts` | 행사별 설정 — 학교 약칭, 회사 목록, 디자인 목록, QR 받기 여부 |
 | `src/lib/future-card/share.ts` | QR 받기 (업로드 · 받기 주소) |
 | `src/components/future-card/` | 단계별 화면 (두 행사가 함께 사용) |
+| `src/lib/future-card/vision.ts` 의 손 · 얼굴 윤곽 모델 | 부대행사 손금 · 동물상이 함께 사용 |
 
 **QR 받기 설정 (최초 1회, 완료됨 — `jobfestival-blob`)**: Vercel 대시보드 → **Storage → Create → Blob (Private)** 으로 저장소를 만들고 이 프로젝트에 연결하면
 `BLOB_READ_WRITE_TOKEN`(또는 `BLOB_STORE_ID`) 환경변수가 자동으로 추가됩니다. 연결 뒤 새로 배포해야 켜집니다. (설정 전에는 QR 버튼이 안내 문구를 띄웁니다)
@@ -101,7 +104,27 @@ npm run build    # 프로덕션 빌드
 행사 정보는 **`src/lib/kdu.ts`**, 마스코트 · 포스터 이미지는 `public/kdu/` 에 있습니다.
 KMOU 페이지는 `src/app/(kmou)/`, 경동대 페이지는 `src/app/kdu/` 로 나뉘어 머리글 · 바닥글이 따로 적용됩니다. (주소는 그대로)
 
-### 6) 배포
+### 6) 부대행사 사이트 (`/fun`)
+
+태블릿 한 대에 이벤트 하나씩 띄워 운영합니다. 결과는 모두 **QR 로 휴대폰에 받기**(위 4번의 Blob 저장소 사용).
+학교 · 행사 이름은 **`src/lib/fun/config.ts`**, 색은 `tailwind.config.ts` 의 `kdu` 에서 바꿉니다.
+
+| 이벤트 | 주소 | 방식 · 파일 |
+|------|------|------|
+| 미래 명함 | `/fun/future-card` | 위 4번과 같음 |
+| 취업 타로 | `/fun/tarot` | 취업 버전 타로 22장 · 3장 뽑기 — `src/lib/fun/tarot.ts` |
+| 취업 손금 | `/fun/palm` | 손 마디 인식 → 손 유형 · 손금 그리기 — `src/lib/fun/palm.ts` |
+| 펀펀 네컷 | `/fun/four-cut` | 4컷 연속 촬영 · 배경 · 프레임 · 필터 — `src/lib/fun/four-cut.ts` |
+| 이력서 사진 | `/fun/id-photo` | 배경 제거 + 그림 정장 · 3:4 — `src/lib/fun/id-photo.ts` |
+| 1분 자기소개 | `/fun/intro` | **Claude 가 대본 작성** → 프롬프터 보며 녹화 → 영상 QR — `src/app/api/fun/intro-script` |
+| 동물상 테스트 | `/fun/animal` | 얼굴 윤곽 비율 → 6가지 동물상 — `src/lib/fun/animal.ts` |
+| 직무 유형 테스트 | `/fun/job-type` | 홀랜드 6유형 12문항 — `src/lib/fun/job-type.ts` |
+
+**1분 자기소개 AI 대본 설정**: Vercel 환경변수에 **`ANTHROPIC_API_KEY`** 를 넣으면 Claude(`claude-opus-5-5`)가 대본을 씁니다.
+키가 없거나 오류가 나면 미리 만든 문장 틀로 대본을 만들어 부스 운영은 멈추지 않습니다.
+영상은 브라우저에서 저장소로 바로 올라가며(`/api/fun/video`), 3일 뒤 자동 삭제됩니다.
+
+### 7) 배포
 
 `main` 브랜치에 푸시하면 Vercel이 자동으로 빌드·배포합니다.
 

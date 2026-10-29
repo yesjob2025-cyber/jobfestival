@@ -12,6 +12,11 @@ const PATH = /^videos\/[a-z0-9]{20}\.(mp4|webm)$/;
 const MAX_BYTES = 60 * 1024 * 1024;
 const TYPES = ["video/mp4", "video/webm"];
 
+/** 업로드 전에 저장소가 연결돼 있는지 확인 (안 돼 있으면 화면에 안내) */
+export async function GET() {
+  return Response.json({ configured: blobConfigured() });
+}
+
 export async function POST(request: Request) {
   if (!blobConfigured()) return Response.json({ error: "not-configured" }, { status: 503 });
   const body = (await request.json()) as HandleUploadPresignedBody;

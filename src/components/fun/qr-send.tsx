@@ -81,18 +81,15 @@ async function sendImage(canvas: HTMLCanvasElement): Promise<string> {
 }
 
 async function sendVideo(video: Blob, script?: string): Promise<string> {
+  const check = await fetch("/api/fun/video");
+  if (!check.ok || !((await check.json()) as { configured: boolean }).configured) throw new Error("not-configured");
   const id = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
   const ext = video.type.includes("mp4") ? "mp4" : "webm";
-  try {
-    await uploadPresigned(`videos/${id}.${ext}`, video, {
-      access: "private",
-      handleUploadUrl: "/api/fun/video",
-      contentType: video.type.split(";")[0],
-      clientPayload: script?.slice(0, 1500),
-    });
-  } catch (e) {
-    if (e instanceof Error && /not-configured|503/.test(e.message)) throw new Error("not-configured");
-    throw e;
-  }
+  await uploadPresigned(`videos/${id}.${ext}`, video, {
+    access: "private",
+    handleUploadUrl: "/api/fun/video",
+    contentType: video.type.split(";")[0],
+    clientPayload: script?.slice(0, 1500),
+  });
   return `${location.origin}/fun/v?id=${id}.${ext}`;
 }
