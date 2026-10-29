@@ -111,11 +111,11 @@ KMOU 페이지는 `src/app/(kmou)/`, 경동대 페이지는 `src/app/kdu/` 로 �
 
 | 이벤트 | 주소 | 방식 · 파일 |
 |------|------|------|
-| 미래 명함 | `/fun/future-card` | 위 4번과 같음 |
-| 취업 타로 | `/fun/tarot` | 취업 버전 타로 22장 · 3장 뽑기 — `src/lib/fun/tarot.ts` |
-| 취업 손금 | `/fun/palm` | 손 마디 인식 → 손 유형 · 손금 그리기 — `src/lib/fun/palm.ts` |
-| 펀펀 네컷 | `/fun/four-cut` | 4컷 연속 촬영 · 배경 · 프레임 · 필터 — `src/lib/fun/four-cut.ts` |
-| 이력서 사진 | `/fun/id-photo` | 배경 제거 + 그림 정장 · 3:4 — `src/lib/fun/id-photo.ts` |
+| 미래 명함 | `/fun/future-card` | 위 4번과 같음 + 소품 24가지 + **Gemini AI 스타일 10가지** — `src/lib/fun/ai-image.ts` |
+| 취업 타로 | `/fun/tarot` | 1909년 원본(공개 저작물) 78장 · 역방향 · 카드별 풀이 + **Claude 종합 풀이** — `src/lib/fun/tarot.ts` |
+| 취업 손금 | `/fun/palm` | 손 마디 인식 → **사진에서 실제 주름 찾기** (카메라 · 평판 스캐너) — `src/lib/fun/palm-crease.ts` |
+| 펀펀 네컷 | `/fun/four-cut` | 4컷 연속 촬영 · 배경 · 프레임 · 필터 · **스티커 꾸미기** — `src/lib/fun/stickers.ts` |
+| 이력서 사진 | `/fun/id-photo` | 배경 제거 + 그림 정장 / 실사 정장 템플릿(`public/fun/suits/README.md`) / **Gemini AI 실사 정장** · 3:4 |
 | 1분 자기소개 | `/fun/intro` | **Claude 가 대본 작성** → 프롬프터 보며 녹화 → 영상 QR — `src/app/api/fun/intro-script` |
 | 동물상 테스트 | `/fun/animal` | 얼굴 윤곽 비율 → 6가지 동물상 — `src/lib/fun/animal.ts` |
 | 직무 유형 테스트 | `/fun/job-type` | 홀랜드 6유형 12문항 — `src/lib/fun/job-type.ts` |
@@ -123,6 +123,13 @@ KMOU 페이지는 `src/app/(kmou)/`, 경동대 페이지는 `src/app/kdu/` 로 �
 **1분 자기소개 AI 대본 설정**: Vercel 환경변수에 **`ANTHROPIC_API_KEY`** 를 넣으면 Claude(`claude-opus-5-5`)가 대본을 씁니다.
 키가 없거나 오류가 나면 미리 만든 문장 틀로 대본을 만들어 부스 운영은 멈추지 않습니다.
 영상은 브라우저에서 저장소로 바로 올라가며(`/api/fun/video`), 3일 뒤 자동 삭제됩니다.
+타로 종합 풀이도 같은 키를 씁니다 (없으면 미리 만든 풀이).
+
+**AI 이미지 설정 (Google Gemini)**: Vercel 환경변수에 **`GEMINI_API_KEY`** 를 넣으면 미래 명함 "AI 스타일" 과 이력서 사진 "AI 실사 정장" 버튼이 나타납니다.
+모델은 기본 `gemini-2.5-flash-image`, 바꾸려면 `GEMINI_IMAGE_MODEL`. 사진은 Google 로 전송되며 이 사이트에는 저장하지 않습니다.
+프롬프트는 서버의 정해진 목록에서만 만들며, Google AI Studio 에서 **사용 한도(예산)** 를 꼭 걸어 두세요.
+
+**손금 스캐너**: 평판 스캐너로 손바닥을 컬러 300dpi 로 스캔(덮개 대신 어두운 천) → "스캐너 · 사진 파일로 올리기". 사진을 자르지 않고 넣어 1440px 로 분석합니다.
 
 ### 7) 배포
 
