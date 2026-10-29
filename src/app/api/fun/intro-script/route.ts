@@ -1,7 +1,7 @@
 // 1분 자기소개 대본 쓰기 — Claude 가 직무 · 장점 · 경험으로 소리 내어 읽기 좋은 1분 대본을 씁니다.
 // ANTHROPIC_API_KEY 가 없거나 실패하면 기본 문장 틀로 만든 대본을 돌려줍니다 (부스 운영이 멈추지 않게).
 
-import Anthropic from "@anthropic-ai/sdk";
+import { writeWithClaude } from "@/lib/fun/claude";
 import { cleanInput, templateScript, type IntroInput } from "@/lib/fun/intro";
 
 export const runtime = "nodejs";
@@ -27,11 +27,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "bad request" }, { status: 400 });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return Response.json({ script: templateScript(input), source: "template" });
-  }
-
-  const client = new Anthropic();
   const user = [
     `이름: ${input.name || "(말하지 않음)"}`,
     `희망 직무: ${input.job}`,
@@ -40,29 +35,8 @@ export async function POST(req: Request) {
     `분위기: ${input.tone === "bright" ? "밝게" : "진지하게"}`,
   ].join("\n");
 
-  try {
-    const res = await client.beta.messages.create({
-      model: "claude-opus-5-5",
-      max_tokens: 4000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      output_config: { effort: "low" },
-      system: SYSTEM,
-      messages: [{ role: "user", content: user }],
-    });
-    if (res.stop_reason === "refusal") {
-      return Response.json({ script: templateScript(input), source: "template" });
-    }
-    const script = res.content
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("")
-      .trim();
-    if (!script) return Response.json({ script: templateScript(input), source: "template" });
-    return Response.json({ script: script.slice(0, 1200), source: "ai" });
-  } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) console.warn("intro-script: rate limited");
-    else if (e instanceof Anthropic.APIError) console.error(`intro-script: API ${e.status}`, e.message);
-    else console.error("intro-script:", e);
-    return Response.json({ script: templateScript(input), source: "template" });
-  }
+  const script = await writeWithClaude(SYSTEM, user, "intro-script");
+  return script
+    ? Response.json({ script: script.slice(0, 1200), source: "ai" })
+    : Response.json({ script: templateScript(input), source: "template" });
 }
