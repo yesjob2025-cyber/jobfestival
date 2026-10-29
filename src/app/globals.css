@@ -148,6 +148,24 @@ body {
   }
 }
 
+@keyframes palm-reveal {
+  from {
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes palm-beam {
+  from {
+    top: 100%;
+  }
+  to {
+    top: -4rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kdu-float {
     animation: none;
