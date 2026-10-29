@@ -1,3 +1,6 @@
 {
-  "crons": [{ "path": "/api/card/cleanup", "schedule": "17 18 * * *" }]
+  "crons": [
+    { "path": "/api/card/cleanup", "schedule": "17 18 * * *" },
+    { "path": "/api/ev/cleanup", "schedule": "23 18 * * *" }
+  ]
 }
