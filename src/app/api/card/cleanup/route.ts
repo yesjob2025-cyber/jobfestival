@@ -1,4 +1,4 @@
-// 하루 한 번(vercel.json crons) 올린 지 3일이 지난 명함 이미지를 지웁니다.
+// 하루 한 번(vercel.json crons) 올린 지 3일이 지난 결과 이미지 · 영상을 지웁니다.
 
 import { del, list } from "@vercel/blob";
 import { blobConfigured } from "@/lib/future-card/blob";
@@ -19,7 +19,8 @@ export async function GET(req: Request) {
   let cursor: string | undefined;
   let deleted = 0;
   do {
-    const page = await list({ prefix: "cards/", cursor, limit: 1000 });
+    // 명함 · 부대행사 결과 이미지(cards/)와 자기소개 영상(videos/) 모두
+    const page = await list({ cursor, limit: 1000 });
     const old = page.blobs.filter((b) => new Date(b.uploadedAt).getTime() < cutoff).map((b) => b.url);
     if (old.length) await del(old);
     deleted += old.length;

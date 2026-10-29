@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cardImageUrl } from "@/lib/future-card/share";
-import { SaveButtons } from "./save-buttons";
+import { SaveButtons } from "@/components/fun/save-buttons";
 
 export const metadata: Metadata = {
   title: "내 미래 명함 받기",
@@ -21,7 +21,7 @@ export default async function ReceiveCardPage({ searchParams }: { searchParams: 
           <h1 className="mt-1 text-center font-jua text-3xl text-kdu-navy-deep sm:text-4xl">10년 후 나의 명함이 도착했어요! 🎉</h1>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={src} alt="나의 미래 명함" className="mt-8 w-full rounded-2xl shadow-2xl" />
-          <SaveButtons src={src} />
+          <SaveButtons src={src} filename="KDU-future-card.jpg" type="image/jpeg" />
           <p className="mt-4 text-center text-sm text-ink-muted">
             버튼이 안 되면 명함 이미지를 <b>길게 눌러</b> 사진에 저장하세요.
             <br />

@@ -1,13 +1,14 @@
 // ─────────────────────────────────────────────────────────────
 // 미래 명함 — 배경 제거 · 얼굴 위치 찾기 (기기 안에서 실행)
 //
-// Google MediaPipe 의 작은 모델 두 개를 브라우저에서 돌립니다. 사진은 서버로 가지 않습니다.
+// Google MediaPipe 의 작은 모델을 브라우저에서 돌립니다. 사진은 서버로 가지 않습니다.
 //  · 배경 제거  public/models/selfie_segmenter.tflite
 //  · 얼굴 위치  public/models/blaze_face_short_range.tflite (소품을 눈 · 머리 위치에 맞춤)
+//  · 손 · 얼굴 윤곽 (부대행사 손금보기 · 동물상) hand_landmarker.task · face_landmarker.task
 // 실행 파일(wasm)은 scripts/copy-mediapipe.mjs 가 public/mediapipe 에 복사해 둡니다.
 // ─────────────────────────────────────────────────────────────
 
-import type { FaceDetector, ImageSegmenter } from "@mediapipe/tasks-vision";
+import type { FaceDetector, FaceLandmarker, HandLandmarker, ImageSegmenter } from "@mediapipe/tasks-vision";
 import { DEFAULT_GEOM, type FaceGeom } from "./faces";
 
 interface Models {
@@ -17,19 +18,53 @@ interface Models {
 
 let loading: Promise<Models> | null = null;
 
+/** 실패한 불러오기는 지워 두어 다음에 다시 시도합니다. */
+function retryable<T>(load: () => Promise<T>): () => Promise<T> {
+  let p: Promise<T> | null = null;
+  return () => {
+    p ??= load();
+    p.catch(() => (p = null));
+    return p;
+  };
+}
+
+const fileset = retryable(async () => {
+  const { FilesetResolver } = await import("@mediapipe/tasks-vision");
+  return FilesetResolver.forVisionTasks("/mediapipe");
+});
+
+/** 손 마디 21곳 (손금보기) — public/models/hand_landmarker.task */
+export const loadHandLandmarker = retryable(async (): Promise<HandLandmarker> => {
+  const { HandLandmarker } = await import("@mediapipe/tasks-vision");
+  return HandLandmarker.createFromOptions(await fileset(), {
+    baseOptions: { modelAssetPath: "/models/hand_landmarker.task", delegate: "CPU" },
+    runningMode: "IMAGE",
+    numHands: 1,
+  });
+});
+
+/** 얼굴 윤곽 478곳 (동물상) — public/models/face_landmarker.task */
+export const loadFaceLandmarker = retryable(async (): Promise<FaceLandmarker> => {
+  const { FaceLandmarker } = await import("@mediapipe/tasks-vision");
+  return FaceLandmarker.createFromOptions(await fileset(), {
+    baseOptions: { modelAssetPath: "/models/face_landmarker.task", delegate: "CPU" },
+    runningMode: "IMAGE",
+    numFaces: 1,
+  });
+});
+
 /** 촬영 화면이 열릴 때 미리 불러 두면 찍은 직후 바로 처리됩니다. */
 export function preloadVision(): Promise<Models> {
   loading ??= (async () => {
-    const { FilesetResolver, FaceDetector, ImageSegmenter } = await import("@mediapipe/tasks-vision");
-    const fileset = await FilesetResolver.forVisionTasks("/mediapipe");
+    const { FaceDetector, ImageSegmenter } = await import("@mediapipe/tasks-vision");
     const [segmenter, detector] = await Promise.all([
-      ImageSegmenter.createFromOptions(fileset, {
+      ImageSegmenter.createFromOptions(await fileset(), {
         baseOptions: { modelAssetPath: "/models/selfie_segmenter.tflite", delegate: "CPU" },
         runningMode: "IMAGE",
         outputConfidenceMasks: true,
         outputCategoryMask: false,
       }),
-      FaceDetector.createFromOptions(fileset, {
+      FaceDetector.createFromOptions(await fileset(), {
         baseOptions: { modelAssetPath: "/models/blaze_face_short_range.tflite", delegate: "CPU" },
         runningMode: "IMAGE",
         minDetectionConfidence: 0.5,
