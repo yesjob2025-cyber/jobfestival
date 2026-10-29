@@ -320,17 +320,26 @@ export function splitTwo(s: string): string[] {
 // ── 이미지 (마스코트 등) ─────────────────────────────────────
 
 const images = new Map<string, HTMLImageElement>();
+const pending = new Map<string, Promise<HTMLImageElement>>();
 
+/** 같은 그림을 동시에 여러 번 불러도 한 번만 받고, 모두 같은 결과를 받습니다. */
 export function loadImage(src: string): Promise<HTMLImageElement> {
   const cached = images.get(src);
   if (cached?.complete && cached.naturalWidth) return Promise.resolve(cached);
-  return new Promise((resolve, reject) => {
-    const img = cached ?? new Image();
-    images.set(src, img);
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    if (!cached) img.src = src;
-  });
+  let p = pending.get(src);
+  if (!p) {
+    p = new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        images.set(src, img);
+        resolve(img);
+      };
+      img.onerror = reject;
+      img.src = src;
+    }).finally(() => pending.delete(src));
+    pending.set(src, p);
+  }
+  return p;
 }
 
 /** 이미 불러온 이미지만 돌려줍니다 (그리기는 동기라 미리 loadImage 로 받아 둠) */

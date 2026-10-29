@@ -5,6 +5,7 @@
 import { confetti, K, readyImage, roundRect, starburst, text, type Ctx } from "@/lib/future-card/draw";
 import { applyFilter, type FilterId } from "@/lib/future-card/faces";
 import { FUN } from "./config";
+import { drawStickers, type Placed } from "./stickers";
 
 export const FOUR_W = 1200;
 export const FOUR_H = 1800;
@@ -86,7 +87,14 @@ function paintBack(ctx: Ctx, back: BackId, x: number, y: number, w: number, h: n
   }
 }
 
-export function renderFourCut(shots: Shot[], frame: FrameId, back: BackId, filter: FilterId, scale = 1): HTMLCanvasElement {
+export function renderFourCut(
+  shots: Shot[],
+  frame: FrameId,
+  back: BackId,
+  filter: FilterId,
+  scale = 1,
+  stickers: Placed[] = [],
+): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = FOUR_W * scale;
   canvas.height = FOUR_H * scale;
@@ -134,6 +142,7 @@ export function renderFourCut(shots: Shot[], frame: FrameId, back: BackId, filte
   text(ctx, `${FUN.school} · ${date}`, 80, 1712, { size: 38, weight: 700, color: theme.sub });
   const lion = readyImage(FUN.mascot);
   if (lion) ctx.drawImage(lion, FOUR_W - 250, 1555, 170, (170 * lion.naturalHeight) / lion.naturalWidth);
+  drawStickers(ctx, stickers);
   return canvas;
 }
 
