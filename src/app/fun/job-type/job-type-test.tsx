@@ -100,6 +100,12 @@ function Result({ answers, name, onReset }: { answers: TypeId[]; name: string; o
         )}
         <div className="space-y-4">
           <QrSend kind="image" getImage={getImage} resetKey={answers.join("") + name} />
+          <a
+            href={`/fun/intro?type=${top.id}&second=${second.id}`}
+            className="block rounded-2xl border-[3px] border-kdu-navy bg-white p-4 text-center font-jua text-xl text-kdu-navy-deep shadow-[0_5px_0_#0B2A78]"
+          >
+            🎤 이 결과로 강점 매칭 1분 자기소개 만들기 →
+          </a>
           <RestartButton onClick={onReset} />
         </div>
       </div>

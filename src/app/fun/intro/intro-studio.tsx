@@ -6,16 +6,19 @@ import { RestartButton, Spinner, Title } from "@/components/fun/ui";
 import { countdown, useCamera } from "@/components/fun/use-camera";
 import { loadCardAssets } from "@/lib/fun/assets";
 import { FUN } from "@/lib/fun/config";
-import { JOB_CHIPS, LIMITS, STRENGTH_CHIPS, type IntroInput } from "@/lib/fun/intro";
+import { JOB_CHIPS, LIMITS, matchOf, STRENGTH_CHIPS, type IntroInput } from "@/lib/fun/intro";
+import { jobById, traitById } from "@/lib/fun/career-match";
+import { TYPES, type TypeId } from "@/lib/fun/job-type";
+import { Diagnose, MatchView, PickJob, PickStrengths } from "./match-steps";
 import { K, readyImage, roundRect, text } from "@/lib/future-card/draw";
 
-type Step = "form" | "script" | "record" | "review";
+type Step = "diagnose" | "strengths" | "job" | "match" | "form" | "script" | "record" | "review";
 
 const EMPTY: IntroInput = { name: "", job: "", strengths: [], experience: "", tone: "serious" };
 
-export function IntroStudio() {
-  const [step, setStep] = useState<Step>("form");
-  const [input, setInput] = useState<IntroInput>(EMPTY);
+export function IntroStudio({ from = null }: { from?: { type: TypeId; second: TypeId } | null }) {
+  const [step, setStep] = useState<Step>(from ? "strengths" : "diagnose");
+  const [input, setInput] = useState<IntroInput>(from ? { ...EMPTY, ...from, traits: [] } : EMPTY);
   const [script, setScript] = useState("");
   const [loading, setLoading] = useState(false);
   const [video, setVideo] = useState<Blob | null>(null);
@@ -31,6 +34,7 @@ export function IntroStudio() {
       const data = (await res.json()) as { script?: string };
       setScript(data.script ?? "");
       setStep("script");
+      window.scrollTo({ top: 0 });
     } catch {
       setScript("");
       setStep("script");
@@ -39,8 +43,15 @@ export function IntroStudio() {
     }
   }
 
+  function go(s: Step) {
+    setStep(s);
+    window.scrollTo({ top: 0 });
+  }
+
+  const match = useMemo(() => matchOf(input), [input]);
+
   function reset() {
-    setStep("form");
+    setStep("diagnose");
     setInput(EMPTY);
     setScript("");
     setVideo(null);
@@ -49,15 +60,62 @@ export function IntroStudio() {
 
   return (
     <div className="wrap py-8">
-      {step === "form" && (loading ? <Spinner text="AI가 대본을 쓰고 있어요… ✍️" sub="10초 정도 걸려요" /> : <Form input={input} setInput={setInput} onNext={writeScript} />)}
+      {loading && (step === "form" || step === "match") ? (
+        <Spinner text="AI가 대본을 쓰고 있어요… ✍️" sub="진단 결과와 강점 매칭을 담는 중 · 10초 정도 걸려요" />
+      ) : (
+        <>
+          {step === "diagnose" && (
+            <Diagnose
+              key={input.type ?? "new"}
+              onDone={(type, second) => {
+                setInput({ ...input, type, second, traits: [], strengths: [] });
+                go("strengths");
+              }}
+              onSkip={() => {
+                setInput({ ...input, type: undefined, second: undefined, traits: [], jobId: undefined });
+                go("form");
+              }}
+            />
+          )}
+          {step === "strengths" && input.type && input.second && (
+            <PickStrengths
+              top={input.type}
+              second={input.second}
+              picked={input.traits ?? []}
+              setPicked={(ids) => setInput({ ...input, traits: ids, strengths: ids.map((id) => traitById(id)!.name) })}
+              onNext={() => go("job")}
+            />
+          )}
+          {step === "job" && input.type && input.second && (
+            <PickJob
+              top={input.type}
+              second={input.second}
+              onPick={(jobId, custom) => {
+                setInput({ ...input, jobId: jobId ?? undefined, job: jobId ? jobById(jobId)!.name : custom });
+                go("match");
+              }}
+            />
+          )}
+          {step === "match" && match && (
+            <MatchView
+              input={input}
+              setInput={setInput}
+              match={match}
+              onBack={() => go("job")}
+              onNext={writeScript}
+            />
+          )}
+          {step === "form" && <Form input={input} setInput={setInput} onNext={writeScript} onDiagnose={() => go("diagnose")} />}
+        </>
+      )}
       {step === "script" && (
         <ScriptEditor
           script={script}
           setScript={setScript}
           loading={loading}
           onRewrite={writeScript}
-          onBack={() => setStep("form")}
-          onNext={() => setStep("record")}
+          onBack={() => go(input.traits?.length ? "match" : "form")}
+          onNext={() => go("record")}
         />
       )}
       {step === "record" && (
@@ -78,7 +136,7 @@ export function IntroStudio() {
 
 // ── 1. 입력 ─────────────────────────────────────────────────
 
-function Form({ input, setInput, onNext }: { input: IntroInput; setInput: (i: IntroInput) => void; onNext: () => void }) {
+function Form({ input, setInput, onNext, onDiagnose }: { input: IntroInput; setInput: (i: IntroInput) => void; onNext: () => void; onDiagnose: () => void }) {
   const set = <K extends keyof IntroInput>(k: K, v: IntroInput[K]) => setInput({ ...input, [k]: v });
   const toggle = (s: string) =>
     set("strengths", input.strengths.includes(s) ? input.strengths.filter((x) => x !== s) : [...input.strengths, s].slice(-LIMITS.strengths));
@@ -87,6 +145,9 @@ function Form({ input, setInput, onNext }: { input: IntroInput; setInput: (i: In
   return (
     <div className="mx-auto max-w-2xl space-y-7">
       <Title sub="세 가지만 정하면 AI가 1분 대본을 써 드려요">나를 소개해 볼까요?</Title>
+      <button type="button" onClick={onDiagnose} className="w-full rounded-2xl border-2 border-dashed border-kdu-sky bg-white px-4 py-3 font-bold text-kdu-navy">
+        🧭 직무 유형 진단부터 하면 강점 매칭 대본을 만들어 드려요 →
+      </button>
       <Field label="이름 (선택)">
         <input value={input.name} onChange={(e) => set("name", e.target.value)} maxLength={LIMITS.name} placeholder="김경동" className="field py-3 text-lg" />
       </Field>
@@ -218,6 +279,14 @@ function drawVideoFrame(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, 
   ctx.fillRect(28, VH - 180, 14, 128);
   text(ctx, input.name || "지원자", 70, VH - 112, { size: 50, weight: 400, color: "#fff", family: "jua", maxW: VW - 140 });
   text(ctx, `희망 직무 · ${input.job}`, 70, VH - 70, { size: 28, weight: 700, color: K.yellow, maxW: VW - 140 });
+  if (input.type) {
+    // 진단한 유형 배지 (화면 위쪽)
+    const t = TYPES[input.type];
+    roundRect(ctx, 28, 108, 360, 52, 26);
+    ctx.fillStyle = "rgba(255,255,255,0.92)";
+    ctx.fill();
+    text(ctx, `${t.emoji} ${t.nick}`, 208, 144, { size: 28, weight: 400, color: K.navyDeep, align: "center", family: "jua", maxW: 330 });
+  }
   const lion = readyImage(FUN.mascot);
   if (lion) ctx.drawImage(lion, VW - 140, VH - 250, 100, (100 * lion.naturalHeight) / lion.naturalWidth);
 }
@@ -241,7 +310,7 @@ function Recorder({ script, input, onBack, onDone }: { script: string; input: In
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas || !stream) return;
-    await loadCardAssets(input.name + input.job + "1분 자기소개 희망 직무 지원자");
+    await loadCardAssets(input.name + input.job + "1분 자기소개 희망 직무 지원자" + (input.type ? TYPES[input.type].nick : ""));
     setPhase("count");
     await countdown(3, setCount);
 

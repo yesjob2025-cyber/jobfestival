@@ -1,6 +1,6 @@
 import { Confetti } from "@/components/kdu/confetti";
 import { EventTile } from "@/components/fun/ui";
-import { FUN, FUN_EVENTS } from "@/lib/fun/config";
+import { CORNERS, FUN, FUN_EVENTS } from "@/lib/fun/config";
 
 /** 부대행사 메인 — 이벤트 고르기 (각 이벤트는 독립된 주소로, 태블릿마다 하나씩 띄워 운영) */
 export default function FunHomePage() {
@@ -24,15 +24,25 @@ export default function FunHomePage() {
           <img src={FUN.mascot} alt="" className="kdu-float w-40 drop-shadow-xl sm:w-52" />
         </div>
       </section>
-      <section className="wrap py-10">
-        <ul className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {FUN_EVENTS.map((e) => (
-            <li key={e.slug}>
-              <EventTile event={e} />
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div className="wrap space-y-12 py-10">
+        {CORNERS.map((c) => (
+          <section key={c.id} id={c.id} aria-labelledby={`corner-${c.id}`}>
+            <div className="mb-4 flex flex-wrap items-end gap-x-3 gap-y-1">
+              <h2 id={`corner-${c.id}`} className="rounded-2xl px-5 py-2 font-jua text-3xl text-white shadow-[0_5px_0_#0B2A78]" style={{ background: c.color }}>
+                {c.emoji} {c.name}
+              </h2>
+              <p className="pb-1 font-jua text-lg text-kdu-navy-deep">{c.desc}</p>
+            </div>
+            <ul className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+              {FUN_EVENTS.filter((e) => e.corner === c.id).map((e) => (
+                <li key={e.slug}>
+                  <EventTile event={e} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
     </>
   );
 }
