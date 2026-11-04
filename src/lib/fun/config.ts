@@ -27,7 +27,7 @@ export interface FunEvent {
 
 /** 부대행사 코너 — 운세 · 사진 · 취업 */
 export const CORNERS = [
-  { id: "fortune", emoji: "🔮", name: "운세 코너", desc: "타로 · 손금 · 관상으로 보는 나의 취업운", color: "#7A3FD0" },
+  { id: "fortune", emoji: "🔮", name: "운세 코너", desc: "타로 · 관상 · 손금 · 동물상으로 보는 나의 취업운", color: "#7A3FD0" },
   { id: "photo", emoji: "📸", name: "사진 코너", desc: "미래 명함 · 네컷 · 이력서 사진을 바로 내 폰에", color: "#E4457A" },
   { id: "career", emoji: "💼", name: "취업 코너", desc: "직무 유형 진단부터 1분 자기소개 영상까지", color: "#13399A" },
 ] as const;
@@ -35,6 +35,7 @@ export type CornerId = (typeof CORNERS)[number]["id"];
 
 export const FUN_EVENTS: FunEvent[] = [
   { slug: "tarot", emoji: "🔮", name: "취업 타로", desc: "카드 3장으로 보는 나의 취업운", camera: false, corner: "fortune" },
+  { slug: "face", emoji: "🧿", name: "취업 관상", desc: "삼정 · 이마 · 눈 · 코 · 입으로 보는 직장운", camera: true, corner: "fortune" },
   { slug: "palm", emoji: "✋", name: "취업 손금", desc: "내 손금에 숨은 직무 성향", camera: true, corner: "fortune" },
   { slug: "animal", emoji: "🐶", name: "동물상 테스트", desc: "나는 무슨 동물상? 어울리는 직무는?", camera: true, corner: "fortune" },
   { slug: "future-card", emoji: "📇", name: "미래 명함 만들기", desc: "10년 후 나의 명함을 만들어요", camera: true, corner: "photo" },

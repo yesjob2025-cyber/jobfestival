@@ -115,6 +115,7 @@ KMOU 페이지는 `src/app/(kmou)/`, 경동대 페이지는 `src/app/kdu/` 로 �
 |------|------|------|
 | 미래 명함 | `/fun/future-card` | 위 4번과 같음 + 소품 24가지 + **Gemini AI 스타일 10가지** — `src/lib/fun/ai-image.ts` |
 | 취업 타로 | `/fun/tarot` | 1909년 원본(공개 저작물) 78장 · 역방향 · 카드별 풀이 + **Claude 종합 풀이** — `src/lib/fun/tarot.ts` |
+| 취업 관상 | `/fun/face` | 얼굴 윤곽 478점 → 삼정(초년 · 중년 · 말년) · 부위 7곳(이마 관록궁 · 미간 명궁 · 눈썹 · 눈 · 코 재백궁 · 입 · 턱) → 관상 유형 · 직장운 · 관상도 — `src/lib/fun/face-reading.ts` |
 | 취업 손금 | `/fun/palm` | 손 마디 인식 → **사진에서 실제 주름 찾기** (카메라 · 평판 스캐너) — `src/lib/fun/palm-crease.ts` |
 | 펀펀 네컷 | `/fun/four-cut` | 4컷 연속 촬영 · 배경 · 프레임 · 필터 · **스티커 꾸미기** — `src/lib/fun/stickers.ts` |
 | 이력서 사진 | `/fun/id-photo` | 배경 제거 + 그림 정장 / 실사 정장 템플릿(`public/fun/suits/README.md`) / **Gemini AI 실사 정장** · 3:4 |
@@ -122,7 +123,7 @@ KMOU 페이지는 `src/app/(kmou)/`, 경동대 페이지는 `src/app/kdu/` 로 �
 | 동물상 테스트 | `/fun/animal` | 얼굴 윤곽 비율 → 6가지 동물상 — `src/lib/fun/animal.ts` |
 | 직무 유형 테스트 | `/fun/job-type` | 홀랜드 6유형 12문항 — `src/lib/fun/job-type.ts` (결과에서 바로 자기소개로 이어짐) |
 
-부대행사 메인(`/fun`)은 **🔮 운세 코너**(타로 · 손금 · 동물상) / **📸 사진 코너**(미래 명함 · 네컷 · 이력서 사진) / **💼 취업 코너**(1분 자기소개 · 직무 유형)로 묶여 있습니다 — `src/lib/fun/config.ts` 의 `CORNERS`.
+부대행사 메인(`/fun`)은 **🔮 운세 코너**(타로 · 관상 · 손금 · 동물상) / **📸 사진 코너**(미래 명함 · 네컷 · 이력서 사진) / **💼 취업 코너**(1분 자기소개 · 직무 유형)로 묶여 있습니다 — `src/lib/fun/config.ts` 의 `CORNERS`.
 
 **1분 자기소개 AI 대본 설정**: Vercel 환경변수에 **`ANTHROPIC_API_KEY`** 를 넣으면 Claude(`claude-opus-5-5`)가 대본을 씁니다.
 키가 없거나 오류가 나면 미리 만든 문장 틀로 대본을 만들어 부스 운영은 멈추지 않습니다.

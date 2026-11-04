@@ -179,6 +179,36 @@ body {
   }
 }
 
+/* 관상 — 위에서 아래로 훑으며 관상도가 그려짐 */
+@keyframes face-reveal {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes face-beam {
+  from {
+    top: -4rem;
+  }
+  to {
+    top: 100%;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kdu-float {
     animation: none;
