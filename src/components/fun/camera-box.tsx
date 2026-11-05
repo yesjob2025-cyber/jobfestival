@@ -28,6 +28,8 @@ export function CameraBox(props: {
   /** 사진 파일을 자르지 않고 넣기 (스캔 이미지) */
   fileFit?: "cover" | "contain";
   fileLabel?: string;
+  /** 촬영 화면 위에 겹쳐 보여 줄 것 (예: 고른 정장) */
+  overlay?: React.ReactNode;
 }) {
   const size = props.size ?? 720;
   const [facing, setFacing] = useState<Facing>(props.defaultFacing ?? "user");
@@ -50,6 +52,7 @@ export function CameraBox(props: {
     <div className="mx-auto max-w-xl">
       <div className="relative aspect-square overflow-hidden rounded-3xl bg-kdu-navy-deep">
         <video ref={videoRef} playsInline muted className={`h-full w-full object-cover ${mirrored ? "-scale-x-100" : ""}`} />
+        {props.overlay}
         <GuideOverlay guide={props.guide} />
         {props.guide !== "none" && (
           <p className="absolute inset-x-0 top-4 text-center text-sm font-bold text-white drop-shadow">{GUIDE_TEXT[props.guide]}</p>

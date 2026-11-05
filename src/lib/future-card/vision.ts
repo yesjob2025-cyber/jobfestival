@@ -53,6 +53,17 @@ export const loadFaceLandmarker = retryable(async (): Promise<FaceLandmarker> =>
   });
 });
 
+/** 실시간 배경 바꾸기 (네컷 촬영 미리 보기) — 영상용 사람 분리 */
+export const loadVideoSegmenter = retryable(async (): Promise<ImageSegmenter> => {
+  const { ImageSegmenter } = await import("@mediapipe/tasks-vision");
+  return ImageSegmenter.createFromOptions(await fileset(), {
+    baseOptions: { modelAssetPath: "/models/selfie_segmenter.tflite", delegate: "CPU" },
+    runningMode: "VIDEO",
+    outputConfidenceMasks: true,
+    outputCategoryMask: false,
+  });
+});
+
 /** 촬영 화면이 열릴 때 미리 불러 두면 찍은 직후 바로 처리됩니다. */
 export function preloadVision(): Promise<Models> {
   loading ??= (async () => {

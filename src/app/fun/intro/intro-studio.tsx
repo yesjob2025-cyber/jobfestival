@@ -180,6 +180,17 @@ function Form({ input, setInput, onNext, onDiagnose }: { input: IntroInput; setI
           className="field py-3 text-lg"
         />
       </Field>
+      {input.experience.trim() && (
+        <Field label="그 경험에서 내가 한 일 · 결과 (선택)">
+          <input
+            value={input.result ?? ""}
+            onChange={(e) => set("result", e.target.value)}
+            maxLength={LIMITS.result}
+            placeholder="예: 손님 응대 매뉴얼을 만들어 동료 교육을 맡았어요"
+            className="field py-3 text-lg"
+          />
+        </Field>
+      )}
       <Field label="분위기">
         <div className="flex gap-2">
           {(

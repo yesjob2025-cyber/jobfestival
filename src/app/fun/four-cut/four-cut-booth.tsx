@@ -6,10 +6,10 @@ import { QrSend } from "@/components/fun/qr-send";
 import { Options, RestartButton, Title } from "@/components/fun/ui";
 import { countdown, snapSquare, useCamera, type Facing } from "@/components/fun/use-camera";
 import { loadCardAssets } from "@/lib/fun/assets";
-import { BACKS, FOUR_FILTERS, FOUR_H, FOUR_W, FRAMES, renderFourCut, type BackId, type FrameId, type Shot } from "@/lib/fun/four-cut";
+import { BACKS, FOUR_FILTERS, FOUR_H, FOUR_W, FRAMES, paintBack, renderFourCut, type BackId, type FrameId, type Shot } from "@/lib/fun/four-cut";
 import { drawStickers, STICKER_TEXT, STICKERS, hitSticker, stickerExtent, stickerThumb, type Placed } from "@/lib/fun/stickers";
 import type { FilterId } from "@/lib/future-card/faces";
-import { preloadVision, preparePhoto } from "@/lib/future-card/vision";
+import { loadVideoSegmenter, preloadVision, preparePhoto } from "@/lib/future-card/vision";
 
 const SHOTS = 4;
 const WAIT = 5;
@@ -39,6 +39,8 @@ export function FourCutBooth() {
       {!done ? (
         <Shooter
           key={session}
+          back={back}
+          setBack={setBack}
           shots={shots}
           shooting={shooting}
           setShooting={setShooting}
@@ -65,6 +67,8 @@ export function FourCutBooth() {
 }
 
 function Shooter(props: {
+  back: BackId;
+  setBack: (b: BackId) => void;
   shots: Shot[];
   shooting: boolean;
   setShooting: (b: boolean) => void;
@@ -78,6 +82,22 @@ function Shooter(props: {
 
   useEffect(() => {
     preloadVision().catch(() => {});
+  }, []);
+  // 배경 견본 (브라우저에서만 그림)
+  const [thumbs, setThumbs] = useState<((typeof BACKS)[number] & { url: string })[]>([]);
+  useEffect(() => {
+    setThumbs(
+      BACKS.map((b) => {
+        const c = document.createElement("canvas");
+        c.width = c.height = 96;
+        const ctx = c.getContext("2d")!;
+        if (b.id === "original") {
+          ctx.fillStyle = "#C9D3E0";
+          ctx.fillRect(0, 0, 96, 96);
+        } else paintBack(ctx, b.id, 0, 0, 96, 96);
+        return { ...b, url: c.toDataURL("image/png") };
+      }),
+    );
   }, []);
 
   async function run() {
@@ -103,6 +123,7 @@ function Shooter(props: {
       </Title>
       <div className="relative aspect-square overflow-hidden rounded-3xl bg-kdu-navy-deep">
         <video ref={videoRef} playsInline muted className={`h-full w-full object-cover ${facing === "user" ? "-scale-x-100" : ""}`} />
+        {props.back !== "original" && ready && <LiveBack video={videoRef} back={props.back} mirrored={facing === "user"} />}
         {count > 0 && props.shooting && (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-[9rem] font-black text-white drop-shadow-lg">{count}</span>
@@ -111,6 +132,27 @@ function Shooter(props: {
         {flash && <div className="absolute inset-0 bg-white" />}
         {!ready && !error && <p className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white/80">카메라를 켜는 중…</p>}
         {error && <p className="absolute inset-0 flex items-center justify-center px-8 text-center text-sm font-bold text-white">{error}</p>}
+      </div>
+
+      <div className="mt-4">
+        <p className="mb-2 font-jua text-lg text-kdu-navy">🌈 배경 꾸미기 — 고르면 화면에 바로 보여요</p>
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+          {thumbs.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              aria-pressed={props.back === b.id}
+              onClick={() => props.setBack(b.id)}
+              className={`overflow-hidden rounded-xl border-[3px] bg-white text-center transition ${props.back === b.id ? "border-kdu-navy shadow-[0_4px_0_#0B2A78]" : "border-transparent"}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={b.url} alt="" className="aspect-square w-full" />
+              <span className="block truncate px-1 py-1 text-[11px] font-bold text-kdu-navy-deep">
+                {b.emoji} {b.name}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-4 gap-2">
@@ -133,6 +175,88 @@ function Shooter(props: {
       )}
     </div>
   );
+}
+
+/**
+ * 실시간 배경 바꾸기 — 영상에서 사람만 오려 고른 배경 위에 겹쳐 보여 줍니다 (미리 보기용).
+ * 찍힌 사진은 따로 더 정밀하게 배경을 지워 네컷에 씁니다.
+ */
+function LiveBack({ video, back, mirrored }: { video: React.RefObject<HTMLVideoElement | null>; back: BackId; mirrored: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [ok, setOk] = useState(true);
+
+  useEffect(() => {
+    let stop = false;
+    let raf = 0;
+    const S = 480;
+    const frame = document.createElement("canvas");
+    frame.width = frame.height = S;
+    const fctx = frame.getContext("2d", { willReadFrequently: true })!;
+    const maskC = document.createElement("canvas");
+    const bg = document.createElement("canvas");
+    bg.width = bg.height = S;
+    paintBack(bg.getContext("2d")!, back, 0, 0, S, S);
+    let last = 0;
+
+    loadVideoSegmenter()
+      .then((seg) => {
+        const tick = (now: number) => {
+          if (stop) return;
+          raf = requestAnimationFrame(tick);
+          const v = video.current;
+          const out = canvasRef.current;
+          if (!v || !out || v.readyState < 2 || !v.videoWidth || now - last < 50) return;
+          last = now;
+          const m = Math.min(v.videoWidth, v.videoHeight);
+          fctx.save();
+          if (mirrored) {
+            fctx.translate(S, 0);
+            fctx.scale(-1, 1);
+          }
+          fctx.drawImage(v, (v.videoWidth - m) / 2, (v.videoHeight - m) / 2, m, m, 0, 0, S, S);
+          fctx.restore();
+          const res = seg.segmentForVideo(frame, now);
+          try {
+            const masks = res.confidenceMasks;
+            if (!masks?.length) return;
+            const mask = masks[masks.length - 1];
+            const conf = mask.getAsFloat32Array();
+            if (maskC.width !== mask.width) {
+              maskC.width = mask.width;
+              maskC.height = mask.height;
+            }
+            const mctx = maskC.getContext("2d")!;
+            const img = mctx.createImageData(mask.width, mask.height);
+            for (let i = 0; i < conf.length; i++) {
+              const a = Math.min(1, Math.max(0, (conf[i] - 0.3) / 0.4));
+              img.data[i * 4 + 3] = a * 255;
+            }
+            mctx.putImageData(img, 0, 0);
+          } finally {
+            res.close();
+          }
+          const octx = out.getContext("2d")!;
+          octx.globalCompositeOperation = "source-over";
+          octx.clearRect(0, 0, S, S);
+          octx.drawImage(frame, 0, 0);
+          octx.globalCompositeOperation = "destination-in";
+          octx.imageSmoothingEnabled = true;
+          octx.drawImage(maskC, 0, 0, S, S);
+          octx.globalCompositeOperation = "destination-over";
+          octx.drawImage(bg, 0, 0);
+          octx.globalCompositeOperation = "source-over";
+        };
+        raf = requestAnimationFrame(tick);
+      })
+      .catch(() => setOk(false));
+    return () => {
+      stop = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [video, back, mirrored]);
+
+  if (!ok) return null;
+  return <canvas ref={canvasRef} width={480} height={480} className="absolute inset-0 h-full w-full" aria-hidden />;
 }
 
 function ShotThumb({ canvas }: { canvas: HTMLCanvasElement }) {

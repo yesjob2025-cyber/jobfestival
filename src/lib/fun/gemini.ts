@@ -9,6 +9,15 @@ type Part = { text?: string; inlineData?: { mimeType: string; data: string }; in
 
 /** 성공하면 data URL, 거절 · 실패면 이유와 함께 null */
 export async function editImage(jpegBase64: string, prompt: string): Promise<{ image: string } | { error: string }> {
+  return generate([{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: jpegBase64 } }]);
+}
+
+/** 글만으로 그림 만들기 (정장 사진 템플릿 등) */
+export async function generateImage(prompt: string): Promise<{ image: string } | { error: string }> {
+  return generate([{ text: prompt }]);
+}
+
+async function generate(input: Part[]): Promise<{ image: string } | { error: string }> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { error: "not-configured" };
   try {
@@ -16,7 +25,7 @@ export async function editImage(jpegBase64: string, prompt: string): Promise<{ i
       method: "POST",
       headers: { "content-type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }, { inline_data: { mime_type: "image/jpeg", data: jpegBase64 } }] }],
+        contents: [{ role: "user", parts: input }],
         generationConfig: { responseModalities: ["IMAGE"], imageConfig: { aspectRatio: "1:1" } },
       }),
       signal: AbortSignal.timeout(55_000),

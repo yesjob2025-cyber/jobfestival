@@ -69,33 +69,65 @@ export const DEFAULT_ADJUST: IdAdjust = { zoom: 1, outfitY: 0, outfitScale: 1 };
 export interface SuitTemplate {
   id: string;
   name: string;
-  file: string;
+  /** public/fun/suits/ 안의 파일 (url 이 없을 때) */
+  file?: string;
+  /** 그림 주소 (운영자 콘솔에서 만든 정장) */
+  url?: string;
+  /** m 남성 · f 여성 (없으면 남성) */
+  gender?: "m" | "f";
   neck: [number, number];
   shoulder: number;
 }
 
-/** 등록된 정장 템플릿과 그림을 받아 둡니다 (없으면 빈 목록) */
+/** 성별에 맞는 그림 정장 */
+export const DRAWN_BY_GENDER: Record<"m" | "f", OutfitId[]> = { m: ["suitTie", "suit", "shirtTie"], f: ["suitW"] };
+
+/** 등록된 정장 템플릿과 그림을 받아 둡니다 — public/fun/suits/suits.json + 운영자 콘솔에서 만든 정장 (없으면 빈 목록) */
 export async function loadSuitTemplates(): Promise<{ tpl: SuitTemplate; img: HTMLImageElement }[]> {
-  try {
-    const res = await fetch("/fun/suits/suits.json", { cache: "no-store" });
-    if (!res.ok) return [];
-    const list = (await res.json()) as SuitTemplate[];
-    const out = await Promise.all(
-      list.map(async (tpl) => {
-        const img = new Image();
-        img.src = `/fun/suits/${tpl.file}`;
-        try {
-          await img.decode();
-          return { tpl, img };
-        } catch {
-          return null;
-        }
-      }),
-    );
-    return out.filter((x): x is { tpl: SuitTemplate; img: HTMLImageElement } => !!x);
-  } catch {
-    return [];
+  const read = async (url: string) => {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      return res.ok ? ((await res.json()) as SuitTemplate[]) : [];
+    } catch {
+      return [];
+    }
+  };
+  const list = [...(await read("/fun/suits/suits.json")), ...(await read("/api/fun/suits"))];
+  const out = await Promise.all(
+    list.map(async (tpl): Promise<{ tpl: SuitTemplate; img: HTMLImageElement } | null> => {
+      const img = new Image();
+      img.src = tpl.url ?? `/fun/suits/${tpl.file}`;
+      try {
+        await img.decode();
+        return { tpl: { ...tpl, gender: tpl.gender ?? "m" }, img };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return out.filter((x): x is { tpl: SuitTemplate; img: HTMLImageElement } => !!x);
+}
+
+/** 촬영 화면에 겹쳐 보여 줄 옷 그림 (정사각형, 아래쪽에 옷) */
+export function outfitOverlay(size: number, layer: OutfitLayer, o: IdOptions): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d")!;
+  // 촬영 가이드(상반신)의 목 위치 · 얼굴 폭에 맞춤
+  const neckX = size / 2;
+  const neckY = size * 0.66;
+  const faceW = size * 0.24;
+  if (layer.kind === "template") {
+    const k2 = (faceW * 3.9) / layer.tpl.shoulder;
+    ctx.drawImage(layer.img, neckX - layer.tpl.neck[0] * k2, neckY - faceW * 0.1 - layer.tpl.neck[1] * k2, layer.img.naturalWidth * k2, layer.img.naturalHeight * k2);
+  } else if (layer.kind === "drawn") {
+    const s = size / ID_W;
+    ctx.save();
+    ctx.scale(s, s);
+    drawOutfit(ctx, neckX / s, neckY / s, faceW / s, o);
+    ctx.restore();
   }
+  return c;
 }
 
 /** 옷 그리기 방식 — 기본은 그림 정장, 템플릿 사진 정장, 또는 AI 가 이미 입혀 둔 사진이면 그리지 않음 */

@@ -4,13 +4,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AdminShell } from "@/components/ev/admin-shell";
+import { Suits } from "./suits";
 import { draftOf, EventForm } from "@/components/ev/event-form";
 import { StatusBadge } from "@/components/ev/status-badge";
 import { api, Card, ErrorText, EvButton, Field } from "@/components/ev/ui";
 import { FUN_EVENTS } from "@/lib/fun/config";
 import { dateRange, kst, type PublicEvent } from "@/lib/ev/shared";
 
-type Tab = "inquiries" | "orgs" | "events";
+type Tab = "inquiries" | "orgs" | "events" | "suits";
 interface Org {
   id: string;
   name: string;
@@ -60,6 +61,7 @@ export function Console() {
     ["inquiries", `📮 도입 문의${open ? ` (${open})` : ""}`],
     ["orgs", `🏫 기관 계정 (${orgs.length})`],
     ["events", `🎪 행사 (${events.length})`],
+    ["suits", "👔 정장 사진"],
   ];
 
   return (
@@ -126,6 +128,7 @@ export function Console() {
 
         {tab === "orgs" && <Orgs orgs={orgs} onChange={load} onNotice={setNotice} />}
         {tab === "events" && <Events orgs={orgs} events={events} onChange={load} onNotice={setNotice} />}
+        {tab === "suits" && <Suits />}
       </div>
     </AdminShell>
   );

@@ -238,6 +238,18 @@ export function MatchView(props: { input: IntroInput; setInput: (i: IntroInput) 
             className="field py-3 text-lg"
           />
         </label>
+        {input.experience.trim() && (
+          <label className="block">
+            <span className="mb-1.5 block font-jua text-lg text-kdu-navy">그 경험에서 내가 한 일 · 결과 (선택)</span>
+            <input
+              value={input.result ?? ""}
+              onChange={(e) => set("result", e.target.value)}
+              maxLength={LIMITS.result}
+              placeholder="예: SNS 홍보를 맡아 축제 방문객을 늘렸어요"
+              className="field py-3 text-lg"
+            />
+          </label>
+        )}
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-jua text-lg text-kdu-navy">분위기</span>
           {(

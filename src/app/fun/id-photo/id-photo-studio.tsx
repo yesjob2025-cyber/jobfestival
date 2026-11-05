@@ -8,7 +8,10 @@ import { Options, RestartButton, Spinner, Title } from "@/components/fun/ui";
 import {
   BACKGROUNDS,
   DEFAULT_ADJUST,
+  DRAWN_BY_GENDER,
   loadSuitTemplates,
+  outfitOverlay,
+  type OutfitId,
   type OutfitLayer,
   DEFAULT_ID_OPTIONS,
   OUTFITS,
@@ -29,6 +32,10 @@ export function IdPhotoStudio() {
   const [busy, setBusy] = useState(false);
   const [opts, setOpts] = useState<IdOptions>(DEFAULT_ID_OPTIONS);
   const [adj, setAdj] = useState<IdAdjust>(DEFAULT_ADJUST);
+  // 촬영 전에 고르는 성별 · 옷 (실사 정장 id, 없으면 그림 정장)
+  const [gender, setGender] = useState<"m" | "f">("m");
+  const [tplId, setTplId] = useState<string | null>(null);
+  const [picked, setPicked] = useState(false);
 
   useEffect(() => {
     preloadVision().catch(() => {});
@@ -37,6 +44,31 @@ export function IdPhotoStudio() {
   }, []);
   const [templates, setTemplates] = useState<Templates>([]);
   const [aiOn, setAiOn] = useState(false);
+
+  // 실사 정장이 있으면 처음엔 그 성별의 첫 정장으로
+  useEffect(() => {
+    if (picked) return;
+    setTplId(templates.find((t) => t.tpl.gender === gender)?.tpl.id ?? null);
+  }, [templates, gender, picked]);
+
+  const suit = { gender, tplId, templates, opts };
+  const pick = {
+    gender: (g: "m" | "f") => {
+      setGender(g);
+      setPicked(true);
+      setTplId(templates.find((t) => t.tpl.gender === g)?.tpl.id ?? null);
+      setOpts({ ...opts, outfit: g === "f" ? "suitW" : "suitTie" });
+    },
+    template: (id: string) => {
+      setPicked(true);
+      setTplId(id);
+    },
+    drawn: (o: OutfitId) => {
+      setPicked(true);
+      setTplId(null);
+      setOpts({ ...opts, outfit: o });
+    },
+  };
 
   async function onCapture(c: HTMLCanvasElement) {
     setBusy(true);
@@ -48,6 +80,8 @@ export function IdPhotoStudio() {
 
   function reset() {
     setPrepared(null);
+    setGender("m");
+    setPicked(false);
     setOpts(DEFAULT_ID_OPTIONS);
     setAdj(DEFAULT_ADJUST);
     window.scrollTo({ top: 0 });
@@ -57,11 +91,93 @@ export function IdPhotoStudio() {
   if (!prepared)
     return (
       <div className="wrap py-8">
-        <Title sub="정면을 보고, 머리부터 어깨까지 나오게 찍어 주세요">📸 증명사진 촬영</Title>
-        <CameraBox guide="bust" onCapture={onCapture} />
+        <Title sub="입고 싶은 정장을 고르고, 정면을 보고 머리부터 어깨까지 나오게 찍어 주세요">📸 증명사진 촬영</Title>
+        <div className="mx-auto mb-5 max-w-xl">
+          <SuitPicker {...suit} pick={pick} />
+        </div>
+        <CameraBox guide="bust" onCapture={onCapture} overlay={<SuitOverlay {...suit} />} />
       </div>
     );
-  return <Editor raw={raw} templates={templates} aiOn={aiOn} prepared={prepared} opts={opts} setOpts={setOpts} adj={adj} setAdj={setAdj} onRetake={() => setPrepared(null)} onReset={reset} />;
+  return (
+    <Editor
+      raw={raw}
+      templates={templates}
+      aiOn={aiOn}
+      prepared={prepared}
+      opts={opts}
+      setOpts={setOpts}
+      adj={adj}
+      setAdj={setAdj}
+      onRetake={() => setPrepared(null)}
+      onReset={reset}
+      tplId={tplId}
+      picker={<SuitPicker {...suit} pick={pick} />}
+    />
+  );
+}
+
+type Pick = { gender: (g: "m" | "f") => void; template: (id: string) => void; drawn: (o: OutfitId) => void };
+
+/** 남성 · 여성 → 실사 정장(있으면) + 그림 정장 고르기 */
+function SuitPicker({ gender, tplId, templates, opts, pick }: { gender: "m" | "f"; tplId: string | null; templates: Templates; opts: IdOptions; pick: Pick }) {
+  const real = templates.filter((t) => t.tpl.gender === gender);
+  const drawn = DRAWN_BY_GENDER[gender];
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    for (const o of drawn) next[o] = outfitOverlay(160, { kind: "drawn" }, { ...opts, outfit: o }).toDataURL("image/png");
+    for (const t of real) next[t.tpl.id] = outfitOverlay(160, { kind: "template", tpl: t.tpl, img: t.img }, opts).toDataURL("image/png");
+    setThumbs(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gender, templates, opts.suit, opts.tie]);
+
+  const card = (key: string, name: string, on: boolean, onClick: () => void, badge?: string) => (
+    <button
+      key={key}
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={`relative overflow-hidden rounded-2xl border-[3px] bg-[linear-gradient(180deg,#DCEBF7,#C9DFF2)] text-center transition ${on ? "border-kdu-navy shadow-[0_4px_0_#0B2A78]" : "border-white"}`}
+    >
+      {badge && <span className="absolute left-1.5 top-1.5 rounded-full bg-kdu-yellow px-2 py-0.5 text-[10px] font-extrabold text-kdu-navy-deep">{badge}</span>}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {thumbs[key] ? <img src={thumbs[key]} alt="" className="aspect-square w-full" /> : <div className="aspect-square w-full" />}
+      <span className="block truncate bg-white px-1 py-1.5 text-xs font-bold text-kdu-navy-deep">{name}</span>
+    </button>
+  );
+
+  return (
+    <section>
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        {(["m", "f"] as const).map((g) => (
+          <button
+            key={g}
+            type="button"
+            onClick={() => pick.gender(g)}
+            aria-pressed={gender === g}
+            className={gender === g ? "fun-btn-navy py-3 text-xl" : "fun-btn-white py-3 text-xl"}
+          >
+            {g === "m" ? "🙋‍♂️ 남성" : "🙋‍♀️ 여성"}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {real.map((t) => card(t.tpl.id, t.tpl.name, tplId === t.tpl.id, () => pick.template(t.tpl.id), "실사"))}
+        {drawn.map((o) => card(o, OUTFITS.find((x) => x.id === o)!.name, !tplId && opts.outfit === o, () => pick.drawn(o)))}
+      </div>
+    </section>
+  );
+}
+
+/** 촬영 화면 위 고른 정장 (자세 맞추기용) */
+function SuitOverlay({ tplId, templates, opts }: { gender: "m" | "f"; tplId: string | null; templates: Templates; opts: IdOptions }) {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    const t = templates.find((x) => x.tpl.id === tplId);
+    setUrl(outfitOverlay(480, t ? { kind: "template", tpl: t.tpl, img: t.img } : { kind: "drawn" }, opts).toDataURL("image/png"));
+  }, [tplId, templates, opts]);
+  // eslint-disable-next-line @next/next/no-img-element
+  return url ? <img src={url} alt="" className="pointer-events-none absolute inset-0 h-full w-full opacity-90" /> : null;
 }
 
 function Editor(props: {
@@ -75,17 +191,23 @@ function Editor(props: {
   setAdj: (a: IdAdjust) => void;
   onRetake: () => void;
   onReset: () => void;
+  tplId: string | null;
+  picker: React.ReactNode;
 }) {
   useFunDone("id-photo");
   const { opts, adj, templates } = props;
   const [url, setUrl] = useState("");
-  // 옷: 그림 정장(기본) · 실사 템플릿 id · AI 실사 정장
-  const [tplId, setTplId] = useState<string | null>(null);
+  // 옷: 그림 정장(기본) · 실사 템플릿 id(촬영 전에 고름) · AI 실사 정장
+  const { tplId } = props;
   const [ai, setAi] = useState<{ prepared: PreparedPhoto; key: string } | null>(null);
   const [aiUse, setAiUse] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState("");
   const aiKey = `${opts.outfit}-${opts.suit}-${opts.tie}`;
+  // 실사 정장을 고르면 AI 사진 대신 그 정장으로
+  useEffect(() => {
+    if (tplId) setAiUse(false);
+  }, [tplId]);
   const usingAi = aiUse && !!ai;
   const prepared = usingAi ? ai.prepared : props.prepared;
   const tpl = templates.find((t) => t.tpl.id === tplId);
@@ -147,20 +269,12 @@ function Editor(props: {
         </div>
 
         <div className="space-y-6">
-          {templates.length > 0 && (
-            <Options
-              title="📷 실사 정장 사진"
-              items={[{ id: "", name: "그림 정장 쓰기" }, ...templates.map((t) => ({ id: t.tpl.id, name: t.tpl.name }))]}
-              value={usingAi ? "-" : (tplId ?? "")}
-              onPick={(v) => {
-                setTplId(v || null);
-                setAiUse(false);
-              }}
-            />
-          )}
+          <div>
+            <p className="mb-2 font-jua text-xl text-kdu-navy">👔 옷</p>
+            {props.picker}
+          </div>
           {!tpl && (
             <>
-              <Options title="👔 옷" items={OUTFITS} value={opts.outfit} onPick={(v) => set("outfit", v)} />
               {opts.outfit !== "shirtTie" && <Options title="🎨 정장 색" items={SUIT_COLORS} value={opts.suit} onPick={(v) => set("suit", v)} />}
               {hasTie && <Options title="👔 넥타이" items={TIE_COLORS} value={opts.tie} onPick={(v) => set("tie", v)} />}
             </>

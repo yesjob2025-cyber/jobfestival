@@ -1,6 +1,7 @@
 "use client";
 
 import { useFunDone } from "@/components/fun/mode";
+import { cardDetail, conclusionOf, type TarotAi } from "@/lib/fun/tarot-detail";
 import { useEffect, useMemo, useState } from "react";
 import { QrSend } from "@/components/fun/qr-send";
 import { RestartButton, Title } from "@/components/fun/ui";
@@ -177,7 +178,7 @@ function CardFace({ d }: { d: Drawn }) {
 function Reveal({ drawn, topic, name, onReset }: { drawn: Drawn[]; topic: TopicId; name: string; onReset: () => void }) {
   useFunDone("tarot");
   const [revealed, setRevealed] = useState(0);
-  const [ai, setAi] = useState<string | null | undefined>(undefined);
+  const [ai, setAi] = useState<TarotAi | null | undefined>(undefined);
   const done = revealed >= 3;
 
   useEffect(() => {
@@ -195,7 +196,7 @@ function Reveal({ drawn, topic, name, onReset }: { drawn: Drawn[]; topic: TopicI
       body: JSON.stringify({ topic, name, cards: drawn.map((d) => ({ id: d.card.id, reversed: d.reversed })) }),
     })
       .then((r) => r.json())
-      .then((j: { reading: string | null }) => alive && setAi(j.reading))
+      .then((j: { reading: TarotAi | null }) => alive && setAi(j.reading))
       .catch(() => alive && setAi(null));
     return () => {
       alive = false;
@@ -232,42 +233,108 @@ function Reveal({ drawn, topic, name, onReset }: { drawn: Drawn[]; topic: TopicI
       {done && (
         <div className="mt-10 space-y-5">
           {drawn.map((d, i) => (
-            <article key={d.card.id} className="kdu-card flex gap-4 p-5 sm:p-6">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={cardImage(d.card)} alt="" className={`h-32 w-auto shrink-0 rounded-md shadow sm:h-40 ${d.reversed ? "rotate-180" : ""}`} />
-              <div>
-                <p className="text-sm font-bold text-kdu-sky">
-                  {i + 1}. {POSITIONS[i].name} — {POSITIONS[i].desc}
-                </p>
-                <h3 className="mt-1 font-jua text-2xl text-kdu-navy-deep">
-                  {d.card.ko} <span className="text-base text-ink-muted">({d.reversed ? "역방향" : "정방향"} · {suitTheme(d.card.suit)})</span>
-                </h3>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {d.card.keywords.map((k) => (
-                    <span key={k} className="rounded-full bg-kdu-sky-pale px-3 py-1 text-xs font-bold text-kdu-navy">
-                      #{k}
-                    </span>
-                  ))}
-                </div>
-                <p className="mt-3 leading-relaxed text-ink break-keep">{d.reversed ? d.card.rev : d.card.up}</p>
-                {i === 2 && <p className="mt-2 font-bold text-kdu-pink break-keep">💡 {d.card.advice}</p>}
-              </div>
-            </article>
+            <CardArticle key={d.card.id} d={d} i={i} topic={topic} ai={ai?.cards[i]} loading={ai === undefined} />
           ))}
+          <Conclusion drawn={drawn} topic={topic} ai={ai} summary={summary} />
 
-          <article className="rounded-3xl border-[3px] border-kdu-navy bg-kdu-yellow/30 p-6">
-            <h3 className="font-jua text-2xl text-kdu-navy-deep">🔮 종합 풀이{ai ? " (AI 리더)" : ""}</h3>
-            {ai === undefined ? (
-              <p className="mt-3 animate-pulse font-bold text-kdu-navy">카드를 이어서 읽고 있어요…</p>
-            ) : (
-              <p className="mt-3 whitespace-pre-line leading-relaxed text-ink break-keep">{ai ?? summary}</p>
-            )}
-          </article>
-
-          <Result drawn={drawn} topic={topic} name={name} summary={summary} onReset={onReset} />
+          <Result drawn={drawn} topic={topic} name={name} summary={`${ai?.conclusion || conclusionOf(drawn, topic).verdict.text} ${summary}`} onReset={onReset} />
         </div>
       )}
     </div>
+  );
+}
+
+/** 카드 한 장 자세히 — 그림 이야기 · 카드의 의미 · 이 자리에서 · 고민에 비춰 · 리더의 풀이 · 조언 */
+function CardArticle({ d, i, topic, ai, loading }: { d: Drawn; i: number; topic: TopicId; ai?: string; loading: boolean }) {
+  const x = cardDetail(d, i, topic);
+  const t = TOPICS.find((v) => v.id === topic)!;
+  const row = (icon: string, label: string, body: string) => (
+    <div>
+      <p className="text-sm font-extrabold text-kdu-navy">
+        {icon} {label}
+      </p>
+      <p className="mt-0.5 leading-relaxed text-ink break-keep">{body}</p>
+    </div>
+  );
+  return (
+    <article className="kdu-card p-5 sm:p-6">
+      <div className="flex gap-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={cardImage(d.card)} alt="" className={`h-36 w-auto shrink-0 rounded-md shadow sm:h-48 ${d.reversed ? "rotate-180" : ""}`} />
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-kdu-sky">
+            {i + 1}. {POSITIONS[i].name} — {POSITIONS[i].desc}
+          </p>
+          <h3 className="mt-1 font-jua text-2xl text-kdu-navy-deep">
+            {d.card.ko} <span className="text-base text-ink-muted">({d.card.en} · {d.reversed ? "역방향" : "정방향"})</span>
+          </h3>
+          <p className="text-sm font-bold text-ink-muted">{suitTheme(d.card.suit)}</p>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {d.card.keywords.map((k) => (
+              <span key={k} className="rounded-full bg-kdu-sky-pale px-3 py-1 text-xs font-bold text-kdu-navy">
+                #{k}
+              </span>
+            ))}
+          </div>
+          <p className="mt-3 hidden text-sm leading-relaxed text-ink-soft break-keep sm:block">🖼️ {x.scene}</p>
+        </div>
+      </div>
+      <div className="mt-4 space-y-3 border-t border-ink-line pt-4">
+        <p className="text-sm leading-relaxed text-ink-soft break-keep sm:hidden">🖼️ {x.scene}</p>
+        {row("📖", d.reversed ? "역방향의 의미" : "카드의 의미", x.meaning)}
+        {row("📍", `「${POSITIONS[i].name}」 자리에서`, x.position)}
+        {row(t.emoji, `${t.name}에 비춰 보면`, x.topic)}
+        {loading ? (
+          <p className="animate-pulse text-sm font-bold text-kdu-navy">🔮 리더가 이 카드를 더 깊이 읽고 있어요…</p>
+        ) : (
+          ai && (
+            <div className="rounded-2xl bg-kdu-sky-pale p-4">
+              <p className="text-sm font-extrabold text-kdu-navy">🔮 리더의 풀이</p>
+              <p className="mt-1 leading-relaxed text-ink break-keep">{ai}</p>
+            </div>
+          )
+        )}
+        <div className="flex flex-wrap gap-2 text-sm">
+          <span className="rounded-xl bg-kdu-yellow/40 px-3 py-2 font-bold text-kdu-navy-deep break-keep">💡 {x.advice}</span>
+          <span className="rounded-xl bg-white px-3 py-2 font-bold text-ink-soft ring-1 ring-ink-line">💼 행운 직무 · {x.job}</span>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/** 결론 — 한 줄 판정 · 세 장을 이은 이야기 · 오늘 할 일 · 행운 정보 */
+function Conclusion({ drawn, topic, ai, summary }: { drawn: Drawn[]; topic: TopicId; ai: TarotAi | null | undefined; summary: string }) {
+  const c = conclusionOf(drawn, topic);
+  const actions = ai?.actions.length ? ai.actions : c.actions.map((a) => a.text);
+  return (
+    <article className="rounded-3xl border-[3px] border-kdu-navy bg-white p-6 shadow-[0_6px_0_#0B2A78]">
+      <p className="font-fun text-lg font-bold text-kdu-sky">CONCLUSION</p>
+      <h3 className="mt-1 font-jua text-3xl text-kdu-navy-deep">
+        {c.verdict.emoji} 결론 — {c.verdict.title} <span className="text-kdu-pink">{c.luck.score}%</span>
+      </h3>
+      <p className="mt-3 rounded-2xl bg-kdu-yellow/30 p-4 text-lg font-bold leading-relaxed text-kdu-navy-deep break-keep">{ai?.conclusion || c.verdict.text}</p>
+      <h4 className="mt-5 font-jua text-xl text-kdu-navy">🔮 세 장을 이어 읽으면{ai ? " (AI 리더)" : ""}</h4>
+      {ai === undefined ? (
+        <p className="mt-2 animate-pulse font-bold text-kdu-navy">카드를 이어서 읽고 있어요…</p>
+      ) : (
+        <p className="mt-2 whitespace-pre-line leading-relaxed text-ink break-keep">{ai?.story || summary}</p>
+      )}
+      <h4 className="mt-5 font-jua text-xl text-kdu-navy">✅ 오늘 바로 해 볼 일</h4>
+      <ol className="mt-2 space-y-2">
+        {actions.map((a, i) => (
+          <li key={i} className="flex gap-3 rounded-xl bg-kdu-sky-pale px-4 py-3 font-semibold text-ink break-keep">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-kdu-navy text-sm font-bold text-white">{i + 1}</span>
+            {a}
+          </li>
+        ))}
+      </ol>
+      <div className="mt-5 flex flex-wrap gap-2 text-sm font-bold">
+        <span className="rounded-full bg-kdu-sky-pale px-3 py-1.5 text-kdu-navy-deep">🍀 행운의 아이템 · {c.luck.item}</span>
+        <span className="rounded-full bg-[#FFF6D1] px-3 py-1.5 text-kdu-navy-deep">🎨 행운의 색 · {c.luck.color}</span>
+        <span className="rounded-full bg-kdu-pink/10 px-3 py-1.5 text-kdu-navy-deep">💼 행운 직무 · {c.luck.job}</span>
+      </div>
+    </article>
   );
 }
 
