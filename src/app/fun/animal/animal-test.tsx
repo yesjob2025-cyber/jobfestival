@@ -1,5 +1,6 @@
 "use client";
 
+import { useFunDone } from "@/components/fun/mode";
 import { useEffect, useMemo, useState } from "react";
 import { CameraBox } from "@/components/fun/camera-box";
 import { QrSend } from "@/components/fun/qr-send";
@@ -68,6 +69,7 @@ export function AnimalTest() {
 }
 
 function ResultView({ result, name, onReset }: { result: Result; name: string; onReset: () => void }) {
+  useFunDone("animal");
   const top = result.ranking[0].animal;
   const partner = ANIMALS[top.partner];
   const [url, setUrl] = useState("");

@@ -2,7 +2,7 @@
 
 이 저장소에는 서로 독립된 두 가지가 들어 있다.
 
-1. **KMOU 취업박람회 홈페이지** — Next.js (`src/`, 루트 `package.json`). 설명은 `README.md`.
+1. **잡페스티벌 서비스 + KMOU 취업박람회 홈페이지** — Next.js (`src/`, 루트 `package.json`). 첫 화면은 잡페스티벌 안내, KMOU 페이지는 `/kmou`. 설명은 `README.md`.
 2. **하루 계획 (funnyrak)** — 개인용 단일 HTML 앱.
    - 배포되는 앱: `public/funnyrak/index.html` (Next 가 정적 파일로 그대로 서빙 → `jobfestival.co.kr/funnyrak/index.html`)
    - 그 밖의 모든 것(Apps Script · 테스트 · 문서): `funnyrak/` — 규칙은 `funnyrak/CLAUDE.md`

@@ -1,5 +1,6 @@
 "use client";
 
+import { useFunDone } from "@/components/fun/mode";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { QrSend } from "@/components/fun/qr-send";
 import { Options, RestartButton, Title } from "@/components/fun/ui";
@@ -153,6 +154,7 @@ function Editor(props: {
   onRetake: () => void;
   onReset: () => void;
 }) {
+  useFunDone("four-cut");
   const { shots, frame, back, filter, stickers } = props;
   const [url, setUrl] = useState("");
   const cutoutsReady = shots.every((s) => s.cutout);

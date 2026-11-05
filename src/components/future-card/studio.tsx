@@ -1,5 +1,6 @@
 "use client";
 
+import { useFunDone } from "@/components/fun/mode";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { CameraCapture } from "./camera";
@@ -550,6 +551,7 @@ function DesignStep(props: {
 // ── 5단계: 완성 ──────────────────────────────────────────────
 
 function ResultStep(props: { face: HTMLCanvasElement; info: CardInfo; design: CardDesignId; onBack: () => void; onReset: () => void }) {
+  useFunDone("future-card");
   const brand = useBrand();
   const url = useCardUrl(props.face, props.info, props.design, 1);
 

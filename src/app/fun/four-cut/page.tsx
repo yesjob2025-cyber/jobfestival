@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: event.name, description: event.desc }
 export default function FourCutPage() {
   return (
     <>
-      <EventHero event={event} sub="5초마다 한 컷씩, 네 번 찍어요! 프레임 · 배경 · 필터는 찍은 뒤에 골라요" />
+      <EventHero event={event} sub={event.sub} />
       <FourCutBooth />
     </>
   );

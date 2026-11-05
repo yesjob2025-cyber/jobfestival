@@ -50,10 +50,10 @@ export default function HomePage() {
             </div>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/companies" className="btn-primary">
+              <Link href="/kmou/companies" className="btn-primary">
                 참여기업 목록 보기
               </Link>
-              <Link href="/program" className="btn-outline">
+              <Link href="/kmou/program" className="btn-outline">
                 행사 프로그램
               </Link>
             </div>
@@ -67,7 +67,7 @@ export default function HomePage() {
         <h2 className="h-section mt-2">하루 동안 이렇게 진행됩니다</h2>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          <Link href="/companies" className="card-link p-6">
+          <Link href="/kmou/companies" className="card-link p-6">
             <span className="chip-ocean">부스 운영</span>
             <h3 className="mt-3 text-lg font-extrabold text-navy">{EXPO.boothSummary}</h3>
             <p className="mt-2 text-sm text-ink-soft">
@@ -77,7 +77,7 @@ export default function HomePage() {
             <p className="mt-4 text-sm font-bold text-ocean">참여기업 {COMPANIES.length}개사 보기 →</p>
           </Link>
 
-          <Link href="/program" className="card-link p-6">
+          <Link href="/kmou/program" className="card-link p-6">
             <span className="chip-ocean">채용설명회</span>
             <h3 className="mt-3 text-lg font-extrabold text-navy">
               주요 기업 {SESSIONS.length}개사 현장 설명회
@@ -91,7 +91,7 @@ export default function HomePage() {
             </ul>
           </Link>
 
-          <Link href="/program" className="card-link p-6">
+          <Link href="/kmou/program" className="card-link p-6">
             <span className="chip-ocean">현직자 동문선배 멘토링</span>
             <h3 className="mt-3 text-lg font-extrabold text-navy">
               다양한 직무 동문 선배가 전하는 REAL 취업 노하우
@@ -112,7 +112,7 @@ export default function HomePage() {
                 <li key={e.name}>· {e.name}</li>
               ))}
             </ul>
-            <Link href="/future-card" className="mt-4 inline-block text-sm font-bold text-ocean">
+            <Link href="/kmou/future-card" className="mt-4 inline-block text-sm font-bold text-ocean">
               📸 10년 후 나의 미래 명함 만들기 →
             </Link>
           </div>
@@ -127,14 +127,14 @@ export default function HomePage() {
               <p className="label">Companies</p>
               <h2 className="h-section mt-2">이런 기업이 함께합니다</h2>
             </div>
-            <Link href="/companies" className="btn-outline btn-sm shrink-0">
+            <Link href="/kmou/companies" className="btn-outline btn-sm shrink-0">
               전체보기
             </Link>
           </div>
 
           <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {COMPANIES.slice(0, 9).map((c) => (
-              <Link key={c.id} href={`/companies/${c.id}`} className="card-link flex items-center gap-3 p-4">
+              <Link key={c.id} href={`/kmou/companies/${c.id}`} className="card-link flex items-center gap-3 p-4">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-navy text-xs font-black text-sun">
                   {c.boothNo.split(",")[0]}
                 </span>

@@ -3,6 +3,7 @@
 // 행사 정보 입력 — 새 행사 만들기와 설정 고치기가 같이 씁니다.
 
 import { useState } from "react";
+import { CORNERS, FUN_EVENTS } from "@/lib/fun/config";
 import { DEFAULT_FIELDS, DEFAULT_SURVEY, FIELD_OPTIONS, type FieldId, type PublicEvent } from "@/lib/ev/shared";
 import { ErrorText, EvButton, Field } from "./ui";
 
@@ -19,6 +20,9 @@ export interface EventDraft {
   survey: string[];
   notice: string;
   retentionDays: number;
+  booths: string[];
+  stampGoal: number;
+  short: string;
 }
 
 export function draftOf(ev?: PublicEvent): EventDraft {
@@ -34,6 +38,9 @@ export function draftOf(ev?: PublicEvent): EventDraft {
     survey: ev?.survey ?? DEFAULT_SURVEY,
     notice: ev?.notice ?? "",
     retentionDays: ev?.retentionDays ?? 30,
+    booths: ev?.booths ?? [],
+    stampGoal: ev?.stampGoal ?? 0,
+    short: ev?.short ?? "",
   };
 }
 
@@ -83,6 +90,10 @@ export function EventForm(props: {
         </Field>
       </div>
 
+      <Field label="짧은 이름 (선택 · 8자)" hint="결과 카드 · 영상 배지에 들어가요 (예: KDU, 해양대)">
+        <input className="field py-3" value={d.short} onChange={(e) => set("short", e.target.value)} maxLength={8} placeholder="예) KDU" />
+      </Field>
+
       <Field label="대표 색" hint="등록 페이지 · 티켓 · 보고서에 쓰여요">
         <div className="flex flex-wrap items-center gap-2">
           {COLORS.map((c) => (
@@ -116,6 +127,46 @@ export function EventForm(props: {
             );
           })}
         </div>
+      </Field>
+
+      <Field label="부대행사 (부스)" hint="고른 부대행사만 행사 전용 페이지와 부스 태블릿에 열려요">
+        <div className="space-y-3">
+          {CORNERS.map((c) => (
+            <div key={c.id}>
+              <p className="mb-1.5 text-xs font-extrabold text-ink-muted">
+                {c.emoji} {c.name}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {FUN_EVENTS.filter((e) => e.corner === c.id).map((e) => {
+                  const on = d.booths.includes(e.slug);
+                  return (
+                    <button
+                      key={e.slug}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => set("booths", on ? d.booths.filter((x) => x !== e.slug) : [...d.booths, e.slug])}
+                      className={`rounded-full border-2 px-4 py-2 text-sm font-bold ${on ? "border-[var(--ev)] bg-[var(--ev)] text-white" : "border-ink-line bg-white text-ink-soft"}`}
+                    >
+                      {on ? "✓ " : ""}
+                      {e.emoji} {e.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Field>
+
+      <Field label="부스 스탬프 투어" hint="부스에서 참가자 입장 QR 을 찍으면 스탬프가 쌓여요. 목표 개수를 모으면 티켓에 기념품 안내가 떠요">
+        <select className="field py-3" value={d.stampGoal} onChange={(e) => set("stampGoal", Number(e.target.value))}>
+          <option value={0}>목표 없이 기록만</option>
+          {Array.from({ length: Math.max(1, d.booths.length) }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              스탬프 {n}개 모으면 기념품
+            </option>
+          ))}
+        </select>
       </Field>
 
       <Field label="퇴장 설문 문항 (5점 척도, 한 줄에 하나 · 최대 8개)" hint="끝에 자유 의견 칸은 자동으로 붙어요">

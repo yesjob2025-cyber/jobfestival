@@ -29,12 +29,12 @@ export function SiteFooter() {
           <p className="text-sm font-extrabold text-white">바로가기</p>
           <ul className="mt-3 space-y-2 text-sm">
             <li>
-              <Link href="/companies" className="hover:text-white">
+              <Link href="/kmou/companies" className="hover:text-white">
                 참여기업 목록
               </Link>
             </li>
             <li>
-              <Link href="/program" className="hover:text-white">
+              <Link href="/kmou/program" className="hover:text-white">
                 행사 프로그램
               </Link>
             </li>

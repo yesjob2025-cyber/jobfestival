@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { HourlyChart } from "@/components/ev/hourly-chart";
-import { reportData, stats } from "@/lib/ev/service";
+import { boothStats, reportData, stats } from "@/lib/ev/service";
+import { FUN_EVENTS } from "@/lib/fun/config";
 import { dateRange, FIELD_OPTIONS, kst, SCALE, shade } from "@/lib/ev/shared";
 import { guard } from "../guard";
 import { PrintBar } from "./print-bar";
@@ -14,7 +15,9 @@ export default async function Page({ params }: { params: Promise<{ code: string 
   const g = await guard(code, "admin", "관리자 로그인");
   if ("view" in g) return g.view;
   const ev = g.ev;
-  const [s, r] = await Promise.all([stats(code), reportData(code)]);
+  const [s, r, b] = await Promise.all([stats(code), reportData(code), boothStats(code)]);
+  const stampPeople = b.perPerson.reduce((a, x) => a + x.n, 0);
+  const goalDone = b.goal ? b.perPerson.filter((x) => x.k >= b.goal).reduce((a, x) => a + x.n, 0) : 0;
   const pct = (a: number, b: number) => (b ? `${((a / b) * 100).toFixed(1)}%` : "–");
   const avgAll = r.survey.length && r.survey.some((q) => q.count) ? r.survey.reduce((a, q) => a + q.avg, 0) / r.survey.filter((q) => q.count).length : 0;
   const now = kst(new Date(), { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
@@ -96,7 +99,47 @@ export default async function Page({ params }: { params: Promise<{ code: string 
           </div>
         </Section>
 
-        <Section n="4" title={`만족도 조사 (응답 ${s.surveyed}명${avgAll ? ` · 전체 평균 ${avgAll.toFixed(2)}점 / 5점` : ""})`}>
+        <Section n="4" title="부대행사 · 부스 참여">
+          {b.booths.length ? (
+            <>
+              <p className="mb-3 text-sm text-ink-soft">
+                스탬프 참여 {stampPeople}명 (입장 대비 {pct(stampPeople, s.entered)}) · 부스 체험 {b.booths.reduce((a, x) => a + x.plays, 0)}회
+                {b.goal ? ` · 스탬프 투어 ${b.goal}개 완성 ${goalDone}명` : ""}
+              </p>
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="bg-ink-bg">
+                    <th className="px-3 py-2 text-left">부스</th>
+                    <th className="w-28 px-3 py-2 text-right">참여 인원</th>
+                    <th className="w-28 px-3 py-2 text-right">체험 횟수</th>
+                    <th className="w-28 px-3 py-2 text-right">입장 대비</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...b.booths]
+                    .sort((x, y) => y.stamps - x.stamps)
+                    .map((x) => {
+                      const e = FUN_EVENTS.find((f) => f.slug === x.booth);
+                      return (
+                        <tr key={x.booth} className="border-b border-ink-line">
+                          <td className="px-3 py-2">
+                            {e?.emoji} {e?.name ?? x.booth}
+                          </td>
+                          <td className="px-3 py-2 text-right font-bold tabular-nums">{x.stamps}명</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{x.plays}회</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{pct(x.stamps, s.entered)}</td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </>
+          ) : (
+            <Empty />
+          )}
+        </Section>
+
+        <Section n="5" title={`만족도 조사 (응답 ${s.surveyed}명${avgAll ? ` · 전체 평균 ${avgAll.toFixed(2)}점 / 5점` : ""})`}>
           {s.surveyed ? (
             <table className="w-full border-collapse text-xs">
               <thead>
@@ -134,7 +177,7 @@ export default async function Page({ params }: { params: Promise<{ code: string 
           )}
         </Section>
 
-        <Section n="5" title={`참가자 의견 (${r.comments.length}건)`}>
+        <Section n="6" title={`참가자 의견 (${r.comments.length}건)`}>
           {r.comments.length ? (
             <ul className="space-y-1.5 text-sm">
               {r.comments.slice(0, 60).map((c, i) => (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useFunDone } from "@/components/fun/mode";
 import { useEffect, useMemo, useState } from "react";
 import { CameraBox } from "@/components/fun/camera-box";
 import { QrSend } from "@/components/fun/qr-send";
@@ -107,6 +108,7 @@ function Tips() {
 }
 
 function Result({ scan, name, onReset }: { scan: Scan; name: string; onReset: () => void }) {
+  useFunDone("palm");
   const t = HAND_TYPES[scan.reading.type];
   const lined = useMemo(() => scan.lined.toDataURL("image/jpeg", 0.9), [scan]);
   const [scanned, setScanned] = useState(false);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, Card, ErrorText, EvButton, QrImage, Shell } from "@/components/ev/ui";
+import { FUN_EVENTS } from "@/lib/fun/config";
 import { dateRange, kst, SCALE, type Ticket } from "@/lib/ev/shared";
 
 /** 참가자 티켓 — 입장 QR → (입장하면) 만족도 설문 → 퇴장 QR → 끝 */
@@ -37,6 +38,7 @@ export function TicketView({ initial, again }: { initial: Ticket; again: boolean
         {again && t.stage === "registered" && <p className="mt-2 text-sm font-bold text-[var(--ev)]">이미 등록된 번호예요 — 기존 입장 QR 이에요</p>}
 
         <Steps stage={t.stage} />
+        {ev.booths.length > 0 && ev.status === "confirmed" && <StampBoard ticket={t} />}
 
         {t.stage === "registered" && (
           <div className="mt-6">
@@ -77,6 +79,37 @@ export function TicketView({ initial, again }: { initial: Ticket; again: boolean
         )}
       </Card>
     </Shell>
+  );
+}
+
+/** 부스 스탬프 — 부스에서 이 QR 을 찍으면 도장이 찍혀요 */
+function StampBoard({ ticket: t }: { ticket: Ticket }) {
+  const goal = t.event.stampGoal;
+  const have = t.stamps.filter((s) => t.event.booths.includes(s)).length;
+  return (
+    <div className="mt-5 rounded-2xl bg-ink-bg p-4 text-left">
+      <p className="flex items-center justify-between text-sm font-extrabold text-ink">
+        <span>🎪 부스 스탬프</span>
+        <span className="text-[var(--ev)]">{goal ? `${have} / ${goal}` : `${have}개`}</span>
+      </p>
+      <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+        {t.event.booths.map((b) => {
+          const e = FUN_EVENTS.find((x) => x.slug === b);
+          const on = t.stamps.includes(b);
+          return (
+            <li key={b} className={`flex flex-col items-center rounded-xl border-2 p-2 text-center ${on ? "border-[var(--ev)] bg-white" : "border-dashed border-ink-line"}`}>
+              <span className={`text-2xl ${on ? "" : "opacity-30 grayscale"}`}>{on ? "✅" : e?.emoji}</span>
+              <span className={`mt-1 text-[11px] font-bold leading-tight ${on ? "text-ink" : "text-ink-muted"}`}>{e?.name ?? b}</span>
+            </li>
+          );
+        })}
+      </ul>
+      {goal > 0 && (
+        <p className={`mt-3 text-center text-sm font-bold ${have >= goal ? "text-[#1F7A47]" : "text-ink-muted"}`}>
+          {have >= goal ? "🎁 스탬프 완성! 출구에서 기념품을 받으세요" : `부스에서 이 QR 을 보여 주세요 · ${goal - have}개 더 모으면 기념품`}
+        </p>
+      )}
+    </div>
   );
 }
 

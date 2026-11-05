@@ -46,7 +46,7 @@ export default async function CompanyDetailPage({
       {/* 헤더 */}
       <section className="border-b border-ink-line bg-navy text-white">
         <div className="wrap py-12 sm:py-14">
-          <Link href="/companies" className="text-sm font-bold text-white/60 hover:text-white">
+          <Link href="/kmou/companies" className="text-sm font-bold text-white/60 hover:text-white">
             ← 참여기업 목록
           </Link>
 
@@ -183,14 +183,14 @@ export default async function CompanyDetailPage({
 
           <nav className="flex items-center justify-between gap-3">
             {prev ? (
-              <Link href={`/companies/${prev.id}`} className="btn-outline btn-sm">
+              <Link href={`/kmou/companies/${prev.id}`} className="btn-outline btn-sm">
                 ← {prev.name}
               </Link>
             ) : (
               <span />
             )}
             {next && (
-              <Link href={`/companies/${next.id}`} className="btn-outline btn-sm">
+              <Link href={`/kmou/companies/${next.id}`} className="btn-outline btn-sm">
                 {next.name} →
               </Link>
             )}
@@ -230,7 +230,7 @@ export default async function CompanyDetailPage({
             {company.homepageNote && (
               <p className="mt-2 break-all text-xs text-ink-muted">{company.homepageNote}</p>
             )}
-            <Link href="/companies" className="btn-outline mt-2 w-full">
+            <Link href="/kmou/companies" className="btn-outline mt-2 w-full">
               다른 기업 보기
             </Link>
           </div>
@@ -242,7 +242,7 @@ export default async function CompanyDetailPage({
                 {sameCategory.map((c) => (
                   <li key={c.id}>
                     <Link
-                      href={`/companies/${c.id}`}
+                      href={`/kmou/companies/${c.id}`}
                       className="flex items-center justify-between gap-2 rounded-xl border border-ink-line px-3 py-2.5 text-sm font-bold hover:border-ocean/50 hover:bg-ocean-mist"
                     >
                       <span className="truncate">{c.name}</span>

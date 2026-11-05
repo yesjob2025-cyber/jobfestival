@@ -20,7 +20,16 @@ export async function guard(code: string, need: Role, what: string): Promise<{ e
   return {
     view: (
       <Shell color={ev.color} title={ev.name} sub="담당자 · 스태프 화면">
-        <LoginBox code={code} what={what} />
+        {need === "admin" ? (
+          <div className="mx-auto max-w-sm space-y-4">
+            <a href="/login" className="block rounded-2xl bg-[var(--ev)] p-4 text-center font-extrabold text-white">
+              🏫 학교 · 기관 아이디로 로그인 →
+            </a>
+            <LoginBox code={code} what="스태프 PIN 으로 들어가기 (스캐너 · 현장등록)" />
+          </div>
+        ) : (
+          <LoginBox code={code} what={what} />
+        )}
       </Shell>
     ),
   };

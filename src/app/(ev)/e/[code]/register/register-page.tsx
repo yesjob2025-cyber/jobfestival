@@ -20,7 +20,16 @@ export function RegisterPage({ event: ev }: { event: PublicEvent }) {
   }, [ev.code]);
 
   return (
-    <Shell color={ev.color} title={ev.name} sub={[ev.hostOrg, dateRange(ev.startsOn, ev.endsOn), ev.place].filter(Boolean).join(" · ")}>
+    <Shell
+      color={ev.color}
+      title={ev.name}
+      sub={[ev.hostOrg, dateRange(ev.startsOn, ev.endsOn), ev.place].filter(Boolean).join(" · ")}
+      right={
+        <a href={`/e/${ev.code}`} className="shrink-0 rounded-lg bg-white/15 px-3 py-2 text-sm font-bold">
+          행사 안내
+        </a>
+      }
+    >
       {saved && (
         <a href={`/t/${saved}`} className="mb-4 block rounded-2xl border-2 border-[var(--ev)] bg-white p-4 text-center font-bold text-[var(--ev)]">
           🎫 이미 등록하셨어요 — 내 입장 QR 보기 →

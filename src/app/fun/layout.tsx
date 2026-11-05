@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FunFonts } from "@/components/fun/fun-fonts";
 import { FUN } from "@/lib/fun/config";
 
 export const metadata: Metadata = {
@@ -14,11 +15,7 @@ export const metadata: Metadata = {
 export default function FunLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
-      <link
-        rel="stylesheet"
-        precedence="default"
-        href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Gaegu:wght@700&family=Jua&display=swap"
-      />
+      <FunFonts />
       <div className="flex min-h-screen flex-col bg-kdu-sky-pale">
         <header className="sticky top-0 z-50 border-b border-kdu-navy/10 bg-white/90 backdrop-blur">
           <div className="wrap flex min-h-14 items-center gap-2.5 py-2">

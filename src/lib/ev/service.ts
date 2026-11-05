@@ -2,7 +2,8 @@
 
 import { randomBytes } from "node:crypto";
 import { q, tx } from "./db";
-import { hashPin, newPin } from "./auth";
+import { checkPin, hashPin, newPin } from "./auth";
+import { FUN_EVENTS } from "@/lib/fun/config";
 import { DEFAULT_FIELDS, DEFAULT_SURVEY, FIELD_IDS, stageOf, type FieldId, type PublicEvent, type Stage, type Ticket } from "./shared";
 
 interface EventRow {
@@ -20,6 +21,12 @@ interface EventRow {
   staff_pin: string;
   retention_days: number;
   purged: boolean;
+  org_id: string | null;
+  status: "draft" | "confirmed";
+  booths: string[];
+  stamp_goal: number;
+  short: string;
+  logo: string;
 }
 
 export interface AttendeeRow {
@@ -48,10 +55,15 @@ const toPublic = (r: EventRow): PublicEvent => ({
   survey: r.survey,
   notice: r.notice,
   retentionDays: r.retention_days,
+  status: r.status,
+  booths: r.booths,
+  stampGoal: r.stamp_goal,
+  short: r.short,
+  logo: r.logo ? `/api/ev/${r.code}/logo?v=${r.logo}` : "",
 });
 
 const EVENT_COLS = `code, name, host_org, place, to_char(starts_on, 'YYYY-MM-DD') as starts_on, to_char(ends_on, 'YYYY-MM-DD') as ends_on,
-  color, fields, survey, notice, admin_pin, staff_pin, retention_days, purged`;
+  color, fields, survey, notice, admin_pin, staff_pin, retention_days, purged, org_id::text as org_id, status, booths, stamp_goal, short, logo`;
 
 export async function getEventRow(code: string): Promise<EventRow | null> {
   if (!/^[a-z0-9]{4,12}$/.test(code)) return null;
@@ -77,9 +89,13 @@ export interface EventInput {
   survey: string[];
   notice: string;
   retentionDays: number;
+  booths: string[];
+  stampGoal: number;
+  short: string;
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const BOOTH_IDS = FUN_EVENTS.map((e) => e.slug);
 
 /** 입력 검사 · 정리 — 문제가 있으면 오류 문구 */
 export function cleanEvent(b: Partial<EventInput>): EventInput | string {
@@ -106,6 +122,9 @@ export function cleanEvent(b: Partial<EventInput>): EventInput | string {
     survey: survey.length ? survey : DEFAULT_SURVEY,
     notice: String(b.notice ?? "").trim().slice(0, 500),
     retentionDays: Math.min(365, Math.max(1, Number.isFinite(days) ? days : 30)),
+    booths: (Array.isArray(b.booths) ? b.booths : []).filter((x): x is string => typeof x === "string" && BOOTH_IDS.includes(x)),
+    stampGoal: Math.min(20, Math.max(0, Math.round(Number(b.stampGoal ?? 0)) || 0)),
+    short: String(b.short ?? "").trim().slice(0, 8),
   };
 }
 
@@ -113,16 +132,16 @@ const CODE_CHARS = "abcdefghjkmnpqrstuvwxyz23456789";
 const newCode = () => Array.from(randomBytes(6), (b) => CODE_CHARS[b % CODE_CHARS.length]).join("");
 
 /** 새 행사 — 행사 코드와 PIN 두 개를 돌려줍니다 (PIN 은 이때만 보임) */
-export async function createEvent(e: EventInput) {
+export async function createEvent(e: EventInput, orgId: string | null = null) {
   const adminPin = newPin();
   let staffPin = newPin();
   while (staffPin === adminPin) staffPin = newPin();
   for (let tries = 0; tries < 5; tries++) {
     const code = newCode();
     const rows = await q<{ code: string }>(
-      `insert into ev_events (code, name, host_org, place, starts_on, ends_on, color, fields, survey, notice, retention_days, admin_pin, staff_pin)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) on conflict (code) do nothing returning code`,
-      [code, e.name, e.hostOrg, e.place, e.startsOn, e.endsOn, e.color, JSON.stringify(e.fields), JSON.stringify(e.survey), e.notice, e.retentionDays, hashPin(adminPin), hashPin(staffPin)],
+      `insert into ev_events (code, name, host_org, place, starts_on, ends_on, color, fields, survey, notice, retention_days, admin_pin, staff_pin, org_id, booths, stamp_goal, short)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) on conflict (code) do nothing returning code`,
+      [code, e.name, e.hostOrg, e.place, e.startsOn, e.endsOn, e.color, JSON.stringify(e.fields), JSON.stringify(e.survey), e.notice, e.retentionDays, hashPin(adminPin), hashPin(staffPin), orgId, JSON.stringify(e.booths), e.stampGoal, e.short],
     );
     if (rows[0]) return { code, adminPin, staffPin };
   }
@@ -131,8 +150,9 @@ export async function createEvent(e: EventInput) {
 
 export async function updateEvent(code: string, e: EventInput) {
   await q(
-    `update ev_events set name=$2, host_org=$3, place=$4, starts_on=$5, ends_on=$6, color=$7, fields=$8, survey=$9, notice=$10, retention_days=$11 where code=$1`,
-    [code, e.name, e.hostOrg, e.place, e.startsOn, e.endsOn, e.color, JSON.stringify(e.fields), JSON.stringify(e.survey), e.notice, e.retentionDays],
+    `update ev_events set name=$2, host_org=$3, place=$4, starts_on=$5, ends_on=$6, color=$7, fields=$8, survey=$9, notice=$10, retention_days=$11,
+       booths=$12, stamp_goal=$13, short=$14 where code=$1`,
+    [code, e.name, e.hostOrg, e.place, e.startsOn, e.endsOn, e.color, JSON.stringify(e.fields), JSON.stringify(e.survey), e.notice, e.retentionDays, JSON.stringify(e.booths), e.stampGoal, e.short],
   );
 }
 
@@ -203,17 +223,19 @@ export async function register(code: string, r: RegisterInput, onsite = false): 
 export async function getTicket(token: string): Promise<Ticket | null> {
   if (!/^[A-Za-z0-9_-]{16,40}$/.test(token)) return null;
   const rows = await q<AttendeeRow & { event_code: string }>(
-    `select token, name, event_code, entered_at, exited_at, survey_at from ev_attendees where token = $1`,
+    `select id, token, name, event_code, entered_at, exited_at, survey_at from ev_attendees where token = $1`,
     [token],
   );
   const a = rows[0];
   if (!a) return null;
   const ev = await getEvent(a.event_code);
   if (!ev) return null;
+  const stamps = await q<{ booth: string }>(`select booth from ev_stamps where attendee_id = $1 order by at`, [a.id]);
   return {
     token: a.token,
     name: a.name ?? "",
     stage: stageOf(a),
+    stamps: stamps.map((x) => x.booth),
     enteredAt: a.entered_at?.toISOString() ?? null,
     exitedAt: a.exited_at?.toISOString() ?? null,
     surveyDone: !!a.survey_at,
@@ -276,11 +298,18 @@ export async function scan(code: string, kind: "in" | "out", by: { token?: strin
     }
     await c.query(`update ev_attendees set exited_at = now() where id = $1`, [a.id]);
     await c.query(`insert into ev_scans (event_code, attendee_id, kind) values ($1, $2, 'out')`, [code, a.id]);
+    const st = await c.query<{ n: string; goal: number }>(
+      `select (select count(*) from ev_stamps where attendee_id = $1) as n, (select stamp_goal from ev_events where code = $2) as goal`,
+      [a.id, code],
+    );
+    const n = Number(st.rows[0]?.n ?? 0);
+    const goal = st.rows[0]?.goal ?? 0;
+    const stampText = goal ? ` · 스탬프 ${n}/${goal}${n >= goal ? " 완성" : ""}` : n ? ` · 스탬프 ${n}개` : "";
     return {
       ok: true,
       message: "퇴장 완료",
       name,
-      detail: a.survey_at ? "설문 완료 — 기념품을 드려 주세요 🎁" : "설문 미참여 — 티켓 화면에서 설문을 부탁드려요",
+      detail: (a.survey_at ? "설문 완료 — 기념품을 드려 주세요 🎁" : "설문 미참여 — 티켓 화면에서 설문을 부탁드려요") + stampText,
       stage: "exited",
       surveyDone: !!a.survey_at,
     };
@@ -409,4 +438,209 @@ export async function purgeExpired() {
     );
   }
   return rows.map((r) => r.code);
+}
+
+// ── 부스 스탬프 · 체험 횟수 ───────────────────────────────────
+
+/** 부스에서 참가자 티켓을 찍어 스탬프 (부스마다 한 번) */
+export async function stamp(code: string, booth: string, by: { token?: string; id?: string }): Promise<ScanResult & { count?: number; goal?: number }> {
+  const ev = await getEventRow(code);
+  if (!ev) return { ok: false, message: "행사를 찾을 수 없어요" };
+  const found = await q<AttendeeRow>(
+    `select id, name, info, entered_at, exited_at, survey_at from ev_attendees where ${by.token ? "token = $1" : "id = $1"} and event_code = $2`,
+    [by.token ?? by.id, code],
+  );
+  const a = found[0];
+  if (!a) return { ok: false, message: "이 행사 티켓이 아니에요" };
+  const ins = await q<{ id: string }>(
+    `insert into ev_stamps (event_code, attendee_id, booth) values ($1, $2, $3) on conflict do nothing returning id`,
+    [code, a.id, booth],
+  );
+  // 입장 기록 없이 부스에 왔으면 입장도 같이 기록
+  if (!a.entered_at) {
+    await q(`update ev_attendees set entered_at = now() where id = $1 and entered_at is null`, [a.id]);
+    await q(`insert into ev_scans (event_code, attendee_id, kind) values ($1, $2, 'in')`, [code, a.id]);
+  }
+  const [{ n }] = await q<{ n: string }>(`select count(*) as n from ev_stamps where attendee_id = $1`, [a.id]);
+  const count = Number(n);
+  const goal = ev.stamp_goal;
+  const name = FUN_EVENTS.find((e) => e.slug === booth)?.name ?? booth;
+  return {
+    ok: true,
+    repeat: !ins[0],
+    message: ins[0] ? `${name} 스탬프 완료` : `이미 ${name} 스탬프를 찍었어요`,
+    name: a.name ?? "",
+    detail: goal ? `스탬프 ${count} / ${goal}${count >= goal ? " — 🎁 기념품 받을 수 있어요!" : ""}` : `스탬프 ${count}개`,
+    stage: stageOf(a),
+    surveyDone: !!a.survey_at,
+    count,
+    goal,
+  };
+}
+
+export async function addPlay(code: string, booth: string) {
+  await q(`insert into ev_plays (event_code, booth) values ($1, $2)`, [code, booth]);
+}
+
+/** 부스별 참여 — 체험 횟수 · 스탬프(참가자 수) · 시간대 */
+export async function boothStats(code: string) {
+  const plays = await q<{ booth: string; n: string }>(`select booth, count(*) as n from ev_plays where event_code = $1 group by booth`, [code]);
+  const stamps = await q<{ booth: string; n: string }>(`select booth, count(*) as n from ev_stamps where event_code = $1 group by booth`, [code]);
+  const hourly = await q<{ booth: string; hour: number; n: string }>(
+    `select booth, extract(hour from at at time zone 'Asia/Seoul')::int as hour, count(*) as n from ev_stamps where event_code = $1 group by 1, 2 order by 2`,
+    [code],
+  );
+  const dist = await q<{ k: number; n: string }>(
+    `select k, count(*) as n from (select attendee_id, count(*)::int as k from ev_stamps where event_code = $1 group by attendee_id) t group by k order by k`,
+    [code],
+  );
+  const num = (rows: { booth: string; n: string }[], b: string) => Number(rows.find((r) => r.booth === b)?.n ?? 0);
+  const ev = (await getEventRow(code))!;
+  const booths = ev.booths.length ? ev.booths : [...new Set([...plays, ...stamps].map((r) => r.booth))];
+  return {
+    goal: ev.stamp_goal,
+    booths: booths.map((b) => ({ booth: b, plays: num(plays, b), stamps: num(stamps, b) })),
+    hourly: hourly.map((h) => ({ booth: h.booth, hour: h.hour, n: Number(h.n) })),
+    /** 스탬프 k 개 찍은 사람 수 */
+    perPerson: dist.map((d) => ({ k: d.k, n: Number(d.n) })),
+  };
+}
+export type BoothStats = Awaited<ReturnType<typeof boothStats>>;
+
+// ── 기관 계정 ────────────────────────────────────────────────
+
+export interface OrgRow {
+  id: string;
+  name: string;
+  login_id: string;
+  contact: string;
+  created_at: Date;
+  last_login: Date | null;
+  events: string;
+}
+
+export async function createOrg(name: string, loginId: string, password: string, contact: string): Promise<string | { error: string }> {
+  try {
+    const rows = await q<{ id: string }>(`insert into ev_orgs (name, login_id, password, contact) values ($1, $2, $3, $4) returning id::text`, [
+      name,
+      loginId,
+      hashPin(password),
+      contact,
+    ]);
+    return rows[0].id;
+  } catch (e) {
+    if ((e as { code?: string }).code === "23505") return { error: "이미 쓰고 있는 아이디예요." };
+    throw e;
+  }
+}
+
+export async function listOrgs() {
+  return q<OrgRow>(
+    `select o.id::text, o.name, o.login_id, o.contact, o.created_at, o.last_login, count(e.code)::text as events
+     from ev_orgs o left join ev_events e on e.org_id = o.id group by o.id order by o.created_at desc`,
+  );
+}
+
+export async function getOrg(id: string) {
+  const rows = await q<OrgRow>(`select id::text, name, login_id, contact, created_at, last_login, '0' as events from ev_orgs where id = $1`, [id]);
+  return rows[0] ?? null;
+}
+
+export async function setOrgPassword(id: string, password: string) {
+  await q(`update ev_orgs set password = $2 where id = $1`, [id, hashPin(password)]);
+}
+
+/** 아이디 · 비밀번호 확인 — 맞으면 기관 id */
+export async function checkOrgLogin(loginId: string, password: string): Promise<string | null> {
+  const rows = await q<{ id: string; password: string }>(`select id::text, password from ev_orgs where login_id = $1`, [loginId]);
+  const o = rows[0];
+  // 없는 아이디도 같은 시간이 걸리게 한 번 계산
+  const ok = checkPin(password, o?.password ?? "x.x");
+  if (!o || !ok) return null;
+  await q(`update ev_orgs set last_login = now() where id = $1`, [o.id]);
+  return o.id;
+}
+
+/** 행사 목록 (orgId 가 없으면 전체 — 운영자용) */
+export async function listEvents(orgId?: string) {
+  const rows = await q<EventRow & { org_name: string | null; total: string; entered: string }>(
+    `select e.*, o.name as org_name,
+       (select count(*) from ev_attendees a where a.event_code = e.code) as total,
+       (select count(*) from ev_attendees a where a.event_code = e.code and a.entered_at is not null) as entered
+     from (select ${EVENT_COLS}, created_at from ev_events) e left join ev_orgs o on o.id = e.org_id::bigint
+     ${orgId ? "where e.org_id = $1" : ""} order by e.starts_on desc, e.created_at desc`,
+    orgId ? [orgId] : [],
+  );
+  return rows.map((r) => ({ ...toPublic(r), orgId: r.org_id, orgName: r.org_name ?? "", total: Number(r.total), entered: Number(r.entered) }));
+}
+
+export async function setEventStatus(code: string, status: "draft" | "confirmed") {
+  await q(`update ev_events set status = $2 where code = $1`, [code, status]);
+}
+
+export async function setEventOrg(code: string, orgId: string | null) {
+  await q(`update ev_events set org_id = $2 where code = $1`, [code, orgId]);
+}
+
+export async function setEventLogo(code: string, version: string) {
+  await q(`update ev_events set logo = $2 where code = $1`, [code, version]);
+}
+
+// ── 도입 문의 ────────────────────────────────────────────────
+
+export interface Inquiry {
+  org: string;
+  name: string;
+  phone: string;
+  email: string;
+  eventDate: string;
+  size: string;
+  booths: string[];
+  message: string;
+}
+
+export function cleanInquiry(b: Partial<Inquiry>): Inquiry | string {
+  const cut = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
+  const org = cut(b.org, 60);
+  const name = cut(b.name, 30);
+  const phone = cut(b.phone, 20);
+  const email = cut(b.email, 80);
+  if (!org) return "학교 · 기관 이름을 적어 주세요.";
+  if (!name) return "담당자 이름을 적어 주세요.";
+  if (!phone && !email) return "연락처(전화 또는 이메일)를 하나 이상 적어 주세요.";
+  return {
+    org,
+    name,
+    phone,
+    email,
+    eventDate: cut(b.eventDate, 40),
+    size: cut(b.size, 40),
+    booths: (Array.isArray(b.booths) ? b.booths : []).filter((x): x is string => typeof x === "string" && BOOTH_IDS.includes(x)),
+    message: cut(b.message, 1000),
+  };
+}
+
+export async function addInquiry(i: Inquiry) {
+  await q(
+    `insert into ev_inquiries (org, name, phone, email, event_date, size, booths, message) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
+    [i.org, i.name, i.phone, i.email, i.eventDate, i.size, JSON.stringify(i.booths), i.message],
+  );
+}
+
+export async function listInquiries() {
+  return q<{ id: string; org: string; name: string; phone: string; email: string; event_date: string; size: string; booths: string[]; message: string; done: boolean; created_at: Date }>(
+    `select id::text, org, name, phone, email, event_date, size, booths, message, done, created_at from ev_inquiries order by done, created_at desc limit 200`,
+  );
+}
+
+export async function setInquiryDone(id: string, done: boolean) {
+  await q(`update ev_inquiries set done = $2 where id = $1`, [id, done]);
+}
+
+/** 참가자별 찍은 부스 목록 */
+export async function stampsByAttendee(code: string) {
+  const rows = await q<{ attendee_id: string; booth: string }>(`select attendee_id::text, booth from ev_stamps where event_code = $1 order by at`, [code]);
+  const m = new Map<string, string[]>();
+  for (const r of rows) m.set(r.attendee_id, [...(m.get(r.attendee_id) ?? []), r.booth]);
+  return m;
 }

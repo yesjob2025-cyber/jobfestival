@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: event.name, description: event.desc }
 export default function AnimalPage() {
   return (
     <>
-      <EventHero event={event} sub="눈매 · 얼굴형으로 보는 나의 동물상! 어울리는 직무와 찰떡 동료까지 (재미로 보는 테스트)" />
+      <EventHero event={event} sub={event.sub} />
       <AnimalTest />
     </>
   );

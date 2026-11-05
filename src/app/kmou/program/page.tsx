@@ -43,7 +43,7 @@ export default function ProgramPage() {
                 <li key={s.time}>
                   {company ? (
                     <Link
-                      href={`/companies/${company.id}`}
+                      href={`/kmou/companies/${company.id}`}
                       className="card-link flex flex-wrap items-center gap-x-4 gap-y-1 px-5 py-4"
                     >
                       {row}
@@ -98,7 +98,7 @@ export default function ProgramPage() {
           <p className="mt-2 text-sm text-ink-muted">
             {EXPO.boothSummary} — 관심 기업의 부스번호를 미리 확인하면 동선이 편해집니다.
           </p>
-          <Link href="/companies" className="btn-primary mt-6">
+          <Link href="/kmou/companies" className="btn-primary mt-6">
             참여기업 {COMPANIES.length}개사 보기
           </Link>
         </section>

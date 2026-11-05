@@ -1,5 +1,6 @@
 "use client";
 
+import { useFunDone } from "@/components/fun/mode";
 import { useEffect, useMemo, useState } from "react";
 import { QrSend } from "@/components/fun/qr-send";
 import { RestartButton, Title } from "@/components/fun/ui";
@@ -71,6 +72,7 @@ export function JobTypeTest() {
 }
 
 function Result({ answers, name, onReset }: { answers: TypeId[]; name: string; onReset: () => void }) {
+  useFunDone("job-type");
   const { top, second, scores } = useMemo(() => scoreOf(answers), [answers]);
   const [url, setUrl] = useState("");
   const getImage = async () => {

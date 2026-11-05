@@ -8,12 +8,21 @@
 
 import { checkPin, isAdmin, isStaff, login, logout } from "@/lib/ev/auth";
 import { dbConfigured } from "@/lib/ev/db";
+import { get, put } from "@vercel/blob";
+import { blobConfigured } from "@/lib/future-card/blob";
+import { FUN_EVENTS } from "@/lib/fun/config";
 import {
+  addPlay,
+  boothStats,
+  setEventLogo,
+  stamp,
+  stampsByAttendee,
   cleanEvent,
   cleanRegistration,
   getEvent,
   getEventRow,
   listAttendees,
+  reportData,
   register,
   resetPin,
   scan,
@@ -54,6 +63,43 @@ export async function GET(req: Request, ctx: Ctx) {
   if (action === "search") {
     if (!(await isStaff(code))) return err("로그인이 필요해요.", 401);
     return Response.json(await searchAttendees(code, url.searchParams.get("q") ?? ""));
+  }
+  if (action === "booths") {
+    if (!(await isAdmin(code))) return err("관리자 로그인이 필요해요.", 401);
+    return Response.json(await boothStats(code), { headers: { "cache-control": "no-store" } });
+  }
+  if (action === "survey") {
+    if (!(await isAdmin(code))) return err("관리자 로그인이 필요해요.", 401);
+    return Response.json(await reportData(code), { headers: { "cache-control": "no-store" } });
+  }
+  if (action === "attendees") {
+    if (!(await isAdmin(code))) return err("관리자 로그인이 필요해요.", 401);
+    const rows = await listAttendees(code);
+    const stampRows = await stampsByAttendee(code);
+    return Response.json(
+      rows.map((r) => ({
+        id: r.id,
+        name: r.name ?? "(삭제됨)",
+        phone: r.phone ? formatPhone(r.phone) : "",
+        info: r.info,
+        source: r.source,
+        createdAt: r.created_at,
+        enteredAt: r.entered_at,
+        exitedAt: r.exited_at,
+        surveyed: !!r.survey_at,
+        stamps: stampRows.get(r.id) ?? [],
+        stage: stageOf(r),
+      })),
+      { headers: { "cache-control": "no-store" } },
+    );
+  }
+  if (action === "logo") {
+    // 로고는 누구나 볼 수 있음 (등록 페이지 · 결과 카드)
+    const row = await getEventRow(code);
+    if (!row?.logo || !blobConfigured()) return new Response("not found", { status: 404 });
+    const r = await get(`logos/${code}.png`, { access: "private" }).catch(() => null);
+    if (!r || r.statusCode !== 200 || !r.stream) return new Response("not found", { status: 404 });
+    return new Response(r.stream, { headers: { "content-type": "image/png", "cache-control": "public, max-age=31536000, immutable" } });
   }
   if (action === "export") {
     if (!(await isAdmin(code))) return err("관리자 로그인이 필요해요.", 401);
@@ -133,11 +179,38 @@ export async function POST(req: Request, ctx: Ctx) {
     }
     case "scan": {
       if (!(await isStaff(code))) return err("로그인이 필요해요.", 401);
-      const kind = b.kind === "out" ? "out" : "in";
       const token = typeof b.token === "string" ? b.token : undefined;
       const id = typeof b.id === "string" && /^\d+$/.test(b.id) ? b.id : undefined;
       if (!token && !id) return err("QR 을 다시 읽어 주세요.");
-      return Response.json(await scan(code, kind, { token, id }));
+      // 부스 스탬프: kind = "stamp", booth = 부대행사 slug
+      if (b.kind === "stamp") {
+        const booth = String(b.booth ?? "");
+        if (!FUN_EVENTS.some((e) => e.slug === booth)) return err("부스를 골라 주세요.");
+        return Response.json(await stamp(code, booth, { token, id }));
+      }
+      return Response.json(await scan(code, b.kind === "out" ? "out" : "in", { token, id }));
+    }
+    case "play": {
+      // 행사 부스 태블릿(스태프 로그인)에서 결과가 나올 때마다
+      if (!(await isStaff(code))) return err("로그인이 필요해요.", 401);
+      const booth = String(b.booth ?? "");
+      if (!FUN_EVENTS.some((e) => e.slug === booth)) return err("부스를 확인해 주세요.");
+      await addPlay(code, booth);
+      return Response.json({ ok: true });
+    }
+    case "logo": {
+      if (!(await isAdmin(code))) return err("관리자 로그인이 필요해요.", 401);
+      if (b.remove === true) {
+        await setEventLogo(code, "");
+        return Response.json({ logo: "" });
+      }
+      if (!blobConfigured()) return err("파일 저장소(Vercel Blob)가 연결되지 않았어요.", 503);
+      const m = /^data:image\/png;base64,([A-Za-z0-9+/=]+)$/.exec(String(b.image ?? ""));
+      if (!m || m[1].length > 1_500_000) return err("로고는 1MB 이하 이미지로 올려 주세요.");
+      await put(`logos/${code}.png`, Buffer.from(m[1], "base64"), { access: "private", contentType: "image/png", addRandomSuffix: false, allowOverwrite: true });
+      const v = Date.now().toString(36);
+      await setEventLogo(code, v);
+      return Response.json({ logo: `/api/ev/${code}/logo?v=${v}` });
     }
     case "settings": {
       if (!(await isAdmin(code))) return err("관리자 로그인이 필요해요.", 401);

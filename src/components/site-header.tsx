@@ -5,7 +5,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-ink-line/80 bg-white/90 backdrop-blur">
       <div className="wrap flex min-h-16 items-center justify-between gap-3 py-2.5">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/kmou" className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-navy text-[10px] font-black text-sun">
             KMOU
           </span>
@@ -20,13 +20,13 @@ export function SiteHeader() {
         </Link>
 
         <nav className="flex items-center gap-1.5">
-          <Link href="/future-card" className="btn-sun btn-sm">
+          <Link href="/kmou/future-card" className="btn-sun btn-sm">
             미래 명함
           </Link>
-          <Link href="/program" className="btn-outline btn-sm hidden sm:inline-flex">
+          <Link href="/kmou/program" className="btn-outline btn-sm hidden sm:inline-flex">
             행사 프로그램
           </Link>
-          <Link href="/companies" className="btn-primary btn-sm">
+          <Link href="/kmou/companies" className="btn-primary btn-sm">
             참여기업
           </Link>
         </nav>

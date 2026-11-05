@@ -1,5 +1,6 @@
 "use client";
 
+import { useFunDone } from "@/components/fun/mode";
 import { useEffect, useMemo, useState } from "react";
 import { CameraBox } from "@/components/fun/camera-box";
 import { QrSend } from "@/components/fun/qr-send";
@@ -75,6 +76,7 @@ function Editor(props: {
   onRetake: () => void;
   onReset: () => void;
 }) {
+  useFunDone("id-photo");
   const { opts, adj, templates } = props;
   const [url, setUrl] = useState("");
   // 옷: 그림 정장(기본) · 실사 템플릿 id · AI 실사 정장

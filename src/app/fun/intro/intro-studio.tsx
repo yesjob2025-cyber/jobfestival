@@ -1,5 +1,6 @@
 "use client";
 
+import { useFunDone } from "@/components/fun/mode";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { QrSend } from "@/components/fun/qr-send";
 import { RestartButton, Spinner, Title } from "@/components/fun/ui";
@@ -413,6 +414,7 @@ function Recorder({ script, input, onBack, onDone }: { script: string; input: In
 // ── 4. 확인 · 받기 ──────────────────────────────────────────
 
 function Review({ video, script, onRetake, onReset }: { video: Blob; script: string; onRetake: () => void; onReset: () => void }) {
+  useFunDone("intro");
   const url = useMemo(() => URL.createObjectURL(video), [video]);
   useEffect(() => () => URL.revokeObjectURL(url), [url]);
   const mb = (video.size / 1024 / 1024).toFixed(1);

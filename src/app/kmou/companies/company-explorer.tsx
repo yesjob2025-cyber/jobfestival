@@ -59,7 +59,7 @@ export function CompanyExplorer({ companies }: { companies: ExpoCompany[] }) {
       <ul className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {filtered.map((c) => (
           <li key={c.id}>
-            <Link href={`/companies/${c.id}`} className="card-link flex h-full flex-col p-5">
+            <Link href={`/kmou/companies/${c.id}`} className="card-link flex h-full flex-col p-5">
               <div className="flex items-start gap-3">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-navy text-sm font-black text-sun">
                   {c.boothNo.split(",")[0]}

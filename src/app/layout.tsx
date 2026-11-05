@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { EXPO } from "@/lib/expo";
+import { SERVICE } from "@/lib/service";
 
 export const metadata: Metadata = {
   metadataBase: new URL(EXPO.siteUrl),
   title: {
-    default: `${EXPO.title} | ${EXPO.dateLabel}`,
-    template: `%s | ${EXPO.titleShort}`,
+    default: `${SERVICE.name} | ${SERVICE.tagline}`,
+    template: `%s | ${SERVICE.name}`,
   },
-  description: `${EXPO.dateLabel} ${EXPO.timeLabel} · ${EXPO.venue}. ${EXPO.boothSummary}, 채용설명회, 현직자 동문선배 멘토링, 부대 이벤트.`,
+  description: SERVICE.description,
   openGraph: {
-    title: EXPO.title,
-    description: `${EXPO.dateLabel} ${EXPO.timeLabel} · ${EXPO.venue}`,
-    siteName: EXPO.titleShort,
+    title: `${SERVICE.name} — ${SERVICE.tagline}`,
+    description: SERVICE.description,
+    siteName: SERVICE.name,
     locale: "ko_KR",
     type: "website",
   },

@@ -38,6 +38,16 @@ export interface PublicEvent {
   notice: string;
   /** 행사가 끝나고 며칠 뒤 개인정보를 지우는지 */
   retentionDays: number;
+  /** 준비 중 · 확정 */
+  status: "draft" | "confirmed";
+  /** 이 행사에서 여는 부대행사 (slug) */
+  booths: string[];
+  /** 스탬프 몇 개를 모으면 기념품 (0 = 스탬프 투어 안 함) */
+  stampGoal: number;
+  /** 결과물에 들어갈 짧은 이름 (예: KDU) */
+  short: string;
+  /** 로고 이미지 주소 (없으면 "") */
+  logo: string;
 }
 
 export type Stage = "registered" | "entered" | "surveyed" | "exited";
@@ -46,6 +56,8 @@ export interface Ticket {
   token: string;
   name: string;
   stage: Stage;
+  /** 스탬프 찍은 부스 (slug) */
+  stamps: string[];
   enteredAt: string | null;
   exitedAt: string | null;
   surveyDone: boolean;
@@ -100,4 +112,12 @@ export function shade(hex: string, amt: number) {
   const n = parseInt(hex.slice(1), 16);
   const c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.max(0, Math.min(255, Math.round(v + amt))));
   return `rgb(${c.join(",")})`;
+}
+
+/** 행사 색으로 부대행사 화면 색 바꾸기 (CSS 변수, "r g b") */
+export function themeVars(hex: string): Record<string, string> {
+  const n = parseInt(hex.slice(1), 16);
+  const rgb = [n >> 16, (n >> 8) & 255, n & 255];
+  const dark = (k: number) => rgb.map((v) => Math.round(v * k)).join(" ");
+  return { "--kdu-sky": rgb.join(" "), "--kdu-navy": dark(0.72), "--kdu-navy-deep": dark(0.5) };
 }

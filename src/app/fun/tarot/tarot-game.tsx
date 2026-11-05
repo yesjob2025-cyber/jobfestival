@@ -1,5 +1,6 @@
 "use client";
 
+import { useFunDone } from "@/components/fun/mode";
 import { useEffect, useMemo, useState } from "react";
 import { QrSend } from "@/components/fun/qr-send";
 import { RestartButton, Title } from "@/components/fun/ui";
@@ -174,6 +175,7 @@ function CardFace({ d }: { d: Drawn }) {
 }
 
 function Reveal({ drawn, topic, name, onReset }: { drawn: Drawn[]; topic: TopicId; name: string; onReset: () => void }) {
+  useFunDone("tarot");
   const [revealed, setRevealed] = useState(0);
   const [ai, setAi] = useState<string | null | undefined>(undefined);
   const done = revealed >= 3;

@@ -65,6 +65,57 @@ create table if not exists ev_scans (
   at timestamptz not null default now()
 );
 create index if not exists ev_scans_event on ev_scans(event_code, at);
+
+-- 기관 계정 (서비스 운영자가 아이디 · 비밀번호를 발급)
+create table if not exists ev_orgs (
+  id bigserial primary key,
+  name text not null,
+  login_id text not null unique,
+  password text not null,
+  contact text not null default '',
+  created_at timestamptz not null default now(),
+  last_login timestamptz
+);
+alter table ev_events add column if not exists org_id bigint references ev_orgs(id) on delete set null;
+-- draft: 준비 중 · confirmed: 확정 (행사 전용 페이지에 부대행사 버튼이 열림)
+alter table ev_events add column if not exists status text not null default 'draft';
+alter table ev_events add column if not exists booths jsonb not null default '[]';
+alter table ev_events add column if not exists stamp_goal int not null default 0;
+alter table ev_events add column if not exists short text not null default '';
+alter table ev_events add column if not exists logo text not null default '';
+
+-- 부스 스탬프 (부스에서 참가자 티켓 QR 을 찍음, 부스마다 한 번)
+create table if not exists ev_stamps (
+  id bigserial primary key,
+  event_code text not null references ev_events(code) on delete cascade,
+  attendee_id bigint not null references ev_attendees(id) on delete cascade,
+  booth text not null,
+  at timestamptz not null default now(),
+  unique (event_code, attendee_id, booth)
+);
+-- 부스 체험 횟수 (결과가 나올 때마다, 누가 했는지는 모름)
+create table if not exists ev_plays (
+  id bigserial primary key,
+  event_code text not null references ev_events(code) on delete cascade,
+  booth text not null,
+  at timestamptz not null default now()
+);
+create index if not exists ev_plays_event on ev_plays(event_code, at);
+
+-- 첫 화면의 도입 문의
+create table if not exists ev_inquiries (
+  id bigserial primary key,
+  org text not null,
+  name text not null,
+  phone text not null default '',
+  email text not null default '',
+  event_date text not null default '',
+  size text not null default '',
+  booths jsonb not null default '[]',
+  message text not null default '',
+  done boolean not null default false,
+  created_at timestamptz not null default now()
+);
 `;
 
 async function ensure() {

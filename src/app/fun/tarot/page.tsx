@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: event.name, description: event.desc }
 export default function TarotPage() {
   return (
     <>
-      <EventHero event={event} sub="고민을 고르고 카드 3장을 뽑으면, 나의 취업운을 알려 드려요! (재미로 보는 운세)" />
+      <EventHero event={event} sub={event.sub} />
       <TarotGame />
     </>
   );

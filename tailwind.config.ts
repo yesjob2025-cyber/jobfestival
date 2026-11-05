@@ -27,11 +27,12 @@ const config: Config = {
         },
         /** 경동대 Fun Fun Job Festival 포스터 (스카이블루 · 네이비 · 옐로 · 핑크) */
         kdu: {
-          sky: "#08A0F6",
+          // 행사 전용 부스 화면에서는 행사 대표 색으로 바뀝니다 (--kdu-sky · --kdu-navy · --kdu-navy-deep)
+          sky: "rgb(var(--kdu-sky, 8 160 246) / <alpha-value>)",
           "sky-light": "#8FD6FB",
           "sky-pale": "#E3F5FE",
-          navy: "#13399A",
-          "navy-deep": "#0B2A78",
+          navy: "rgb(var(--kdu-navy, 19 57 154) / <alpha-value>)",
+          "navy-deep": "rgb(var(--kdu-navy-deep, 11 42 120) / <alpha-value>)",
           yellow: "#FFD21E",
           pink: "#E4457A",
         },

@@ -17,7 +17,7 @@ export function PosterBoard({ poster }: { poster: PosterInfo | null }) {
 
   return (
     <Link
-      href="/companies"
+      href="/kmou/companies"
       aria-label="참여기업 목록 보기"
       className="group relative block overflow-hidden rounded-3xl shadow-[0_30px_60px_-30px_rgba(6,42,92,0.7)] ring-1 ring-navy/10 transition hover:-translate-y-1"
     >
