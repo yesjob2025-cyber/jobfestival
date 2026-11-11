@@ -1,1 +1,90 @@
-[]
+[
+  {
+    "id": "f-navy-tee",
+    "name": "네이비 재킷 + 흰 티",
+    "file": "f-navy-tee.png",
+    "gender": "f",
+    "neck": [
+      404,
+      52
+    ],
+    "shoulder": 1264
+  },
+  {
+    "id": "f-charcoal-shirt",
+    "name": "차콜 정장 + 흰 셔츠",
+    "file": "f-charcoal-shirt.png",
+    "gender": "f",
+    "neck": [
+      404,
+      18
+    ],
+    "shoulder": 1264
+  },
+  {
+    "id": "f-navy-shirt",
+    "name": "네이비 정장 + 셔츠",
+    "file": "f-navy-shirt.png",
+    "gender": "f",
+    "neck": [
+      404,
+      -7
+    ],
+    "shoulder": 1279
+  },
+  {
+    "id": "m-navy-blue",
+    "name": "네이비 정장 + 블루 타이",
+    "file": "m-navy-blue.png",
+    "gender": "m",
+    "neck": [
+      404,
+      -46
+    ],
+    "shoulder": 1373
+  },
+  {
+    "id": "m-charcoal-wine",
+    "name": "차콜 정장 + 와인 타이",
+    "file": "m-charcoal-wine.png",
+    "gender": "m",
+    "neck": [
+      404,
+      -49
+    ],
+    "shoulder": 1373
+  },
+  {
+    "id": "m-black-stripe",
+    "name": "블랙 정장 + 블루 셔츠",
+    "file": "m-black-stripe.png",
+    "gender": "m",
+    "neck": [
+      404,
+      -47
+    ],
+    "shoulder": 1388
+  },
+  {
+    "id": "m-charcoal-navy",
+    "name": "차콜 정장 + 네이비 타이",
+    "file": "m-charcoal-navy.png",
+    "gender": "m",
+    "neck": [
+      402,
+      -40
+    ],
+    "shoulder": 1326
+  },
+  {
+    "id": "m-navy-gray",
+    "name": "네이비 정장 + 그레이 타이",
+    "file": "m-navy-gray.png",
+    "gender": "m",
+    "neck": [
+      402,
+      -57
+    ],
+    "shoulder": 1388
+  }
+]
