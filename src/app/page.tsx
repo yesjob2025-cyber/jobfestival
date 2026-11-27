@@ -50,7 +50,7 @@ export default function LandingPage() {
                 도입 문의
               </a>
             </div>
-            <p className="mt-4 text-sm text-white/70">체험은 부대행사마다 {SERVICE.trialLimit}번까지 해 볼 수 있어요.</p>
+            <p className="mt-4 text-sm text-white/70">모든 부대행사를 횟수 제한 없이 체험해 볼 수 있어요.</p>
           </div>
           <FlowCard />
         </div>
@@ -92,7 +92,7 @@ export default function LandingPage() {
       {/* 부대행사 */}
       <section id="booths" className="scroll-mt-20 bg-kdu-sky-pale py-20">
         <div className="mx-auto max-w-6xl px-5">
-          <SectionTitle kicker="부대행사" title="학생들이 줄 서는 부스, 태블릿 한 대로" sub={`결과는 모두 QR 로 학생 휴대폰에. 행사 이름 · 로고가 결과물에 들어가요. 지금 바로 체험해 보세요 (부대행사마다 ${SERVICE.trialLimit}회).`} />
+          <SectionTitle kicker="부대행사" title="학생들이 줄 서는 부스, 태블릿 한 대로" sub={`결과는 모두 QR 로 학생 휴대폰에. 행사 이름 · 로고가 결과물에 들어가요. 지금 바로 체험해 보세요.`} />
           <div className="mt-10 space-y-10">
             {CORNERS.map((c) => (
               <div key={c.id}>

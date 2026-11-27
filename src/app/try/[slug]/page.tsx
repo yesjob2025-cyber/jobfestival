@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { FUN_EVENTS } from "@/lib/fun/config";
-import { SERVICE } from "@/lib/service";
 import { TrialBooth } from "./trial-booth";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -20,5 +19,5 @@ export default async function TryPage({ params }: Props) {
   const { slug } = await params;
   const e = FUN_EVENTS.find((x) => x.slug === slug);
   if (!e) notFound();
-  return <TrialBooth slug={e.slug} limit={SERVICE.trialLimit} />;
+  return <TrialBooth slug={e.slug} />;
 }

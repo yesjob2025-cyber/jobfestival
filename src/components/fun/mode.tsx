@@ -4,7 +4,6 @@
 // 결과가 나오면 useFunDone 이 알려 주고, 체험판은 횟수를 세고 행사 부스는 참여 수를 기록합니다.
 
 import { createContext, useContext, useEffect, useRef } from "react";
-import { SERVICE } from "@/lib/service";
 
 export type FunMode = { kind: "public" } | { kind: "trial" } | { kind: "event"; code: string };
 
@@ -58,4 +57,3 @@ function addTrial(slug: string) {
   window.dispatchEvent(new CustomEvent("jf-trial", { detail: { slug, n } }));
 }
 
-export const TRIAL_LIMIT = SERVICE.trialLimit;
