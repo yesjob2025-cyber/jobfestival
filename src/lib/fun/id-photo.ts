@@ -119,7 +119,7 @@ export function outfitOverlay(size: number, layer: OutfitLayer, o: IdOptions): H
   const faceW = size * 0.24;
   if (layer.kind === "template") {
     const k2 = (faceW * 3.9) / layer.tpl.shoulder;
-    ctx.drawImage(layer.img, neckX - layer.tpl.neck[0] * k2, neckY - faceW * 0.1 - layer.tpl.neck[1] * k2, layer.img.naturalWidth * k2, layer.img.naturalHeight * k2);
+    drawSuitImage(ctx, layer.img, neckX - layer.tpl.neck[0] * k2, neckY - faceW * 0.1 - layer.tpl.neck[1] * k2, k2, size);
   } else if (layer.kind === "drawn") {
     const s = size / ID_W;
     ctx.save();
@@ -180,9 +180,19 @@ export function renderIdPhoto(
   if (layer.kind === "template") {
     // 어깨 폭 ≈ 얼굴 폭 3.9배 (그림 정장과 같은 비율), 목 가운데를 맞춰 붙입니다.
     const k2 = (faceW * 3.9) / layer.tpl.shoulder;
-    ctx.drawImage(layer.img, neckX - layer.tpl.neck[0] * k2, neckY - faceW * 0.1 - layer.tpl.neck[1] * k2, layer.img.naturalWidth * k2, layer.img.naturalHeight * k2);
+    drawSuitImage(ctx, layer.img, neckX - layer.tpl.neck[0] * k2, neckY - faceW * 0.1 - layer.tpl.neck[1] * k2, k2, ID_H);
   }
   return canvas;
+}
+
+/**
+ * 실사 정장 그림 붙이기 — 견본 사진이 가슴께에서 끝나므로, 사진 아래 끝까지 맨 아랫줄을 이어 늘려 채웁니다.
+ */
+function drawSuitImage(ctx: Ctx, img: HTMLImageElement, x: number, y: number, k: number, bottom: number) {
+  const w = img.naturalWidth * k;
+  const h = img.naturalHeight * k;
+  ctx.drawImage(img, x, y, w, h);
+  if (y + h < bottom) ctx.drawImage(img, 0, img.naturalHeight - 2, img.naturalWidth, 2, x, y + h - 1, w, bottom - (y + h) + 1);
 }
 
 /** 화사하게 — 사람 부분만 살짝 밝고 따뜻하게 (흐림 없이) */
